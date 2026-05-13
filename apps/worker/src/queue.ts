@@ -26,8 +26,8 @@ function getQueue(): Queue<{ runId: string }> {
 }
 
 export const connection = new Proxy({} as Redis, {
-  get(_, prop) { return (getConnection() as Record<string | symbol, unknown>)[prop]; },
+  get(_, prop) { return (getConnection() as unknown as Record<string | symbol, unknown>)[prop]; },
 });
 export const workflowQueue = new Proxy({} as Queue<{ runId: string }>, {
-  get(_, prop) { return (getQueue() as Record<string | symbol, unknown>)[prop]; },
+  get(_, prop) { return (getQueue() as unknown as Record<string | symbol, unknown>)[prop]; },
 });
