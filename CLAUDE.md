@@ -94,7 +94,7 @@ packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 
 ### Vercel deployment gotchas (lessons learned)
 
-1. **Prisma engine binary**: Must use `serverExternalPackages: ["@prisma/client"]` so Next.js copies `.so.node` files
+1. **Prisma engine binary**: Set `experimental.serverComponentsExternalPackages: ["@prisma/client"]` in next.config so Next.js treats Prisma as external. Also add `binaryTargets = ["rhel-openssl-3.0.x"]` in schema.prisma + `outputFileTracingIncludes` to trace `.so.node` files from pnpm virtual store.
 2. **Prisma generate before build**: `vercel.json` buildCommand = `prisma generate && next build`
 3. **No dotenv**: Vercel provides env vars natively. Don't use dotenv in next.config.js.
 4. **Workspace imports**: Dynamic `import()` for packages that need env vars not set on Vercel (worker/queue needs REDIS_URL)
