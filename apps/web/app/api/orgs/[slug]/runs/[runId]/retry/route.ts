@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
-import { workflowQueue } from "@opsflow/worker/queue";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
 
@@ -31,6 +30,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   });
 
   // Enqueue the retried run for BullMQ processing
+  const { workflowQueue } = await import("@opsflow/worker/queue");
   await workflowQueue.add("execute", { runId: run.id });
 
   return NextResponse.json(updated);
