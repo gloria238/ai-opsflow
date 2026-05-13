@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
-import { hashPassword, signToken } from "@/lib/auth";
+import { hashPassword } from "@/lib/password";
+import { signToken } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {

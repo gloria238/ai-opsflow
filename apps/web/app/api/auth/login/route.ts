@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
-import { verifyPassword, signToken } from "@/lib/auth";
+import { verifyPassword } from "@/lib/password";
+import { signToken } from "@/lib/auth";
 import { getRequestContext, logInfo, logWarn, logError } from "@/lib/logger";
 
 export async function POST(request: Request) {
