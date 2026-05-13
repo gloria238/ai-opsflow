@@ -368,10 +368,12 @@ packages/db (Prisma 6 + PostgreSQL)
 
 | Component | Platform | Status |
 |-----------|----------|--------|
-| Web App (Next.js) | Vercel | 🔄 In Progress |
+| Web App (Next.js) | Vercel | ✅ Deployed (bugs remain) |
 | Worker (BullMQ) | Railway | ◻️ Pending |
 | Database (PostgreSQL) | Supabase | ✅ Already hosted |
 | Redis | Upstash | ✅ Already hosted |
+
+**Production URL:** `opsflow-6pde4lyzt-gloria238s-projects.vercel.app`
 
 ### Vercel deployment fixes applied
 
@@ -382,25 +384,41 @@ packages/db (Prisma 6 + PostgreSQL)
 | Postinstall generate | `package.json` | Prisma Client must be generated with workspace schema |
 | esbuild in allowlist | `package.json` | pnpm was ignoring esbuild postinstall, breaking Next.js |
 | Turbo env passthrough | `turbo.json` | Added `globalEnv` for DATABASE_URL, JWT_SECRET, DEEPSEEK_API_KEY, REDIS_URL |
-| Vercel build config | `apps/web/vercel.json` | Monorepo-aware build command for Vercel |
+| Vercel build config | `apps/web/vercel.json` | Monorepo-aware build command: prisma generate → next build |
+| Remove dotenv from next.config | `apps/web/next.config.js` | Caused `url.parse()` deprecation warning on Vercel |
+| Remove deprecated `prisma` key | `packages/db/package.json` | Migrated `package.json#prisma.seed` → direct `tsx prisma/seed.ts` |
+| Prisma config file | `packages/db/prisma.config.ts` | Modern Prisma 6 config replacing deprecated package.json key |
+| Lazy Queue init | `apps/worker/src/queue.ts` | REDIS_URL check moved from top-level to lazy (Proxy pattern) |
+| Dynamic import for queue | `retry/route.ts`, `trigger/route.ts` | Worker queue imported only when endpoint is called |
+| Split bcrypt from auth lib | `lib/password.ts` (new), `lib/auth.ts` | bcryptjs (Node.js API) separated from Edge-compatible JWT code |
+| Prisma engine external | `apps/web/next.config.js` | `serverExternalPackages: ["@prisma/client"]` — copies `.so.node` binary |
 
-### Environment variables (for both platforms)
+### Remaining bugs
 
-| Variable | Vercel | Railway | Purpose |
-|----------|--------|---------|---------|
-| `DATABASE_URL` | ✅ Set | Needed | Supabase pooled connection (port 6543) |
-| `JWT_SECRET` | ✅ Set | — | JWT signing (generated: 32-byte base64) |
-| `DEEPSEEK_API_KEY` | ✅ Set | — | AI features |
-| `REDIS_URL` | — | Needed | BullMQ queue (Upstash) |
+| # | Bug | Symptom | Root cause |
+|---|-----|---------|------------|
+| 1 | Login returns 500 | Prisma query engine not found for `rhel-openssl-3.0.x` | `serverExternalPackages` added — **fix deployed, pending verification** |
+| 2 | Worker not deployed | No background job processing | Worker needs Railway deployment + REDIS_URL |
+| 3 | Demo data not seeded | Production DB is empty | Need to run seed against production DB |
+
+### Environment variables (Vercel)
+
+| Variable | Status | Purpose |
+|----------|--------|---------|
+| `DATABASE_URL` | ✅ Set | Supabase pooled connection (port 6543) |
+| `JWT_SECRET` | ✅ Set | JWT signing |
+| `DEEPSEEK_API_KEY` | ✅ Set | AI features |
+| `REDIS_URL` | ◻️ Not set | BullMQ queue — needed for trigger/retry endpoints |
 
 ### Blockers
 
-- **GitHub push** — Connection reset (GFW). Deploying via Vercel CLI (`npx vercel`) from local files instead.
+- **GitHub push** — Connection reset (GFW). Deploying via Vercel CLI (`npx vercel`) from local files.
 - **Git repo** — Initialized locally with 3 commits, not yet pushed to GitHub remote.
 
 ### Next steps
 
-1. Complete Vercel web app deployment
+1. Verify login works after `serverExternalPackages` fix
 2. Seed demo data on production DB
-3. Deploy worker to Railway
-4. End-to-end verification (login → create workflow → trigger run → SSE streaming)
+3. Add `REDIS_URL` to Vercel env vars (required for workflow trigger/retry)
+4. Deploy worker to Railway
+5. End-to-end verification (login → create workflow → trigger run → SSE streaming)
