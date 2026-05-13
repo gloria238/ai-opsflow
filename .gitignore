@@ -1,0 +1,9 @@
+node_modules
+.turbo
+.next
+dist
+.env
+.worker-health.json
+*.tsbuildinfo
+.claude/settings.local.json
+.vercel

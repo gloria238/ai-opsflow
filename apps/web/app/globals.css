@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #ffffff;
+    --bg-subtle: #fafafa;
+    --bg-muted: #f4f4f5;
+    --border: #e4e4e7;
+    --border-light: #f0f0f1;
+    --text: #18181b;
+    --text-secondary: #52525b;
+    --text-muted: #a1a1aa;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
+}
+
+@layer base {
+  body {
+    @apply text-zinc-900 antialiased;
+    background: var(--bg);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    @apply bg-blue-100 text-blue-900;
+  }
+
+  /* Neutralize browser autofill — font size and yellow background */
+  input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #18181b !important;
+    font-size: 0.875rem !important;
+    caret-color: #18181b;
+  }
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #18181b !important;
+    font-size: 0.875rem !important;
+  }
+}

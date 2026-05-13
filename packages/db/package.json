@@ -1,0 +1,21 @@
+{
+  "name": "@opsflow/db",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "push": "prisma db push",
+    "seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "prisma": "^6.0.0",
+    "tsx": "^4.0.0"
+  }
+}

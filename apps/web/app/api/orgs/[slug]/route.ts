@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@opsflow/db";
+import { getSession } from "@/lib/session";
+import { requirePermission } from "@/lib/permissions";
+
+export async function GET(request: Request, { params }: { params: { slug: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const membership = await prisma.membership.findFirst({
+    where: { userId: session.userId, organization: { slug: params.slug } },
+    include: { organization: true },
+  });
+
+  if (!membership) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({
+    id: membership.organization.id,
+    name: membership.organization.name,
+    slug: membership.organization.slug,
+    role: membership.role,
+  });
+}
+
+export async function PATCH(request: Request, { params }: { params: { slug: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const membership = await prisma.membership.findFirst({
+    where: { userId: session.userId, organization: { slug: params.slug } },
+  });
+  if (!membership) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  try { requirePermission(membership.role, "manage_org"); }
+  catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
+
+  const body = await request.json();
+  const data: Record<string, string> = {};
+
+  if (body.name) data.name = body.name;
+  if (body.slug) {
+    const exists = await prisma.organization.findUnique({ where: { slug: body.slug } });
+    if (exists && exists.id !== membership.organizationId) {
+      return NextResponse.json({ error: "Slug already taken" }, { status: 409 });
+    }
+    data.slug = body.slug;
+  }
+
+  if (!Object.keys(data).length) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
+
+  const updated = await prisma.organization.update({
+    where: { id: membership.organizationId },
+    data,
+  });
+
+  return NextResponse.json({ id: updated.id, name: updated.name, slug: updated.slug });
+}

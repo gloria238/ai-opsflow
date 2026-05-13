@@ -1,0 +1,179 @@
+// packages/db/prisma/schema.prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")    // Pooled connection for serverless (IPv4)
+  directUrl = env("DIRECT_URL")      // Direct connection for migrations
+  schemas   = ["opsflow"]
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum MembershipRole {
+  owner
+  admin
+  operator
+  viewer
+
+  @@schema("opsflow")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  name         String?
+  passwordHash String
+  memberships  Membership[]
+  createdAt    DateTime     @default(now())
+  @@schema("opsflow")
+}
+
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  memberships Membership[]
+  leads       Lead[]
+  leadActivities LeadActivity[]
+  workflows   Workflow[]
+  auditLogs   AuditLog[]
+  createdAt   DateTime     @default(now())
+  @@schema("opsflow")
+}
+
+model Membership {
+  id             String       @id @default(uuid())
+  organizationId String
+  userId         String
+  role           MembershipRole       @default(admin)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  createdAt      DateTime     @default(now())
+  @@unique([organizationId, userId])
+  @@schema("opsflow")
+}
+
+model Lead {
+  id             String         @id @default(uuid())
+  organizationId String
+  name           String
+  email          String?
+  stage          String?
+  ownerId        String?
+  tags           Json?
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  activities     LeadActivity[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  @@schema("opsflow")
+}
+
+model LeadActivity {
+  id             String       @id @default(uuid())
+  leadId         String
+  organizationId String
+  userId         String?
+  userName       String?
+  type           String       // note | stage_change | assignment | created | updated
+  content        String?
+  metadata       Json?        // { fromStage, toStage } etc.
+  createdAt      DateTime     @default(now())
+
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([leadId, createdAt(sort: Desc)])
+  @@schema("opsflow")
+}
+
+model Workflow {
+  id             String            @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  versions       WorkflowVersion[]
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime          @default(now())
+  @@schema("opsflow")
+}
+
+model WorkflowVersion {
+  id         String          @id @default(uuid())
+  workflowId String
+  version    Int
+  nodes      WorkflowNode[]
+  edges      WorkflowEdge[]
+  runs       WorkflowRun[]
+  workflow   Workflow        @relation(fields: [workflowId], references: [id])
+  createdAt  DateTime        @default(now())
+  @@schema("opsflow")
+}
+
+model WorkflowNode {
+  id        String          @id @default(uuid())
+  versionId String
+  type      String
+  label     String?
+  config    Json
+  positionX Float
+  positionY Float
+  version   WorkflowVersion @relation(fields: [versionId], references: [id])
+  createdAt DateTime        @default(now())
+  @@schema("opsflow")
+}
+
+model WorkflowEdge {
+  id           String          @id @default(uuid())
+  versionId    String
+  sourceNodeId String
+  targetNodeId String
+  sourceHandle String?
+  version      WorkflowVersion @relation(fields: [versionId], references: [id])
+  @@schema("opsflow")
+}
+
+model WorkflowRun {
+  id              String            @id @default(uuid())
+  versionId       String
+  status          String            @default("queued")
+  input           Json?
+  output          Json?
+  triggerEventId  String?
+  idempotencyKey  String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  events          WorkflowRunEvent[]
+  workflowVersion WorkflowVersion   @relation(fields: [versionId], references: [id])
+  @@schema("opsflow")
+}
+
+model WorkflowRunEvent {
+  id          String      @id @default(uuid())
+  runId       String
+  nodeId      String
+  status      String
+  input       Json
+  output      Json?
+  createdAt   DateTime    @default(now())
+  workflowRun WorkflowRun @relation(fields: [runId], references: [id])
+  @@schema("opsflow")
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  userId         String?
+  userName       String?
+  action         String       // e.g. "workflow.created", "lead.updated", "member.removed"
+  targetType     String       // e.g. "Workflow", "Lead", "Membership"
+  targetId       String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@schema("opsflow")
+}
