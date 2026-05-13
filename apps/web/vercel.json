@@ -1,3 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @opsflow/web build"
+  "buildCommand": "pnpm --filter @opsflow/db generate && pnpm --filter @opsflow/web build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs"
 }

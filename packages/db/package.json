@@ -2,13 +2,10 @@
   "name": "@opsflow/db",
   "version": "1.0.0",
   "main": "index.ts",
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "scripts": {
     "generate": "prisma generate",
     "push": "prisma db push",
-    "seed": "prisma db seed"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0"
