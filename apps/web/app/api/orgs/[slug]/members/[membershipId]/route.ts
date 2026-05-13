@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function PATCH(request: Request, { params }: { params: { slug: string; membershipId: string } }) {
   const session = await getSession();
@@ -38,6 +39,16 @@ export async function PATCH(request: Request, { params }: { params: { slug: stri
     include: { user: true },
   });
 
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: session.userId,
+    userName: session.name ?? "Unknown",
+    action: "member.updated",
+    targetType: "Membership",
+    targetId: params.membershipId,
+    metadata: { fromRole: target.role, toRole: role, memberUserId: target.userId },
+  });
+
   return NextResponse.json({ id: updated.id, userId: updated.userId, name: updated.user.name, email: updated.user.email, role: updated.role });
 }
 
@@ -66,6 +77,17 @@ export async function DELETE(request: Request, { params }: { params: { slug: str
     if (ownerCount <= 1) return NextResponse.json({ error: "Cannot remove the last owner" }, { status: 400 });
   }
 
-  await prisma.membership.delete({ where: { id: params.membershipId } });
+  const removed = await prisma.membership.delete({ where: { id: params.membershipId } });
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: session.userId,
+    userName: session.name ?? "Unknown",
+    action: "member.removed",
+    targetType: "Membership",
+    targetId: params.membershipId,
+    metadata: { removedUserId: target.userId, removedRole: target.role },
+  });
+
   return new NextResponse(null, { status: 204 });
 }

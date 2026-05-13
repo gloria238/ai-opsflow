@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const session = await getSession();
@@ -54,6 +55,16 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   const created = await prisma.membership.create({
     data: { organizationId: membership.organizationId, userId: user.id, role },
     include: { user: true },
+  });
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: session.userId,
+    userName: session.name ?? "Unknown",
+    action: "member.added",
+    targetType: "Membership",
+    targetId: created.id,
+    metadata: { addedUserId: user.id, addedEmail: email, role },
   });
 
   return NextResponse.json({ id: created.id, userId: created.userId, name: created.user.name, email: created.user.email, role: created.role }, { status: 201 });

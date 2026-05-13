@@ -53,7 +53,7 @@ export function DialogContent({ children, title }: { children: React.ReactNode; 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onMouseDown={(e) => { if (e.target === overlayRef.current) setOpen(false); }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-visible">
         {title && (
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <h3 className="font-semibold text-lg">{title}</h3>

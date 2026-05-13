@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const session = await getSession();
@@ -65,6 +66,16 @@ export async function POST(request: Request, { params }: { params: { slug: strin
       versions: { create: { version: 1 } },
     },
     include: { versions: { take: 1, orderBy: { version: "desc" } } },
+  });
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: session.userId,
+    userName: session.name ?? "Unknown",
+    action: "workflow.created",
+    targetType: "Workflow",
+    targetId: workflow.id,
+    metadata: { name, description },
   });
 
   return NextResponse.json(workflow, { status: 201 });

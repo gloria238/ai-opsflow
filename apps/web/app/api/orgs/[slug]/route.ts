@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const session = await getSession();
@@ -53,6 +54,16 @@ export async function PATCH(request: Request, { params }: { params: { slug: stri
   const updated = await prisma.organization.update({
     where: { id: membership.organizationId },
     data,
+  });
+
+  await logAudit({
+    organizationId: membership.organizationId,
+    userId: session.userId,
+    userName: session.name ?? "Unknown",
+    action: "organization.updated",
+    targetType: "Organization",
+    targetId: updated.id,
+    metadata: data,
   });
 
   return NextResponse.json({ id: updated.id, name: updated.name, slug: updated.slug });

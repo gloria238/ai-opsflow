@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const session = await getSession();
@@ -107,6 +108,18 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         userName: session.name ?? "Unknown",
         type: "created",
         content: "Lead created",
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: membership.organizationId,
+        userId: session.userId,
+        userName: session.name ?? "Unknown",
+        action: "lead.created",
+        targetType: "Lead",
+        targetId: l.id,
+        metadata: { name, email, stage: stage || "new" },
       },
     });
 

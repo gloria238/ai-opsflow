@@ -15,6 +15,8 @@ export function SettingsGeneralForm({ initialName, initialSlug, orgSlug, canMana
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  const changed = name !== initialName || slug !== initialSlug;
+
   async function handleSave() {
     setSaving(true);
     setMessage("");
@@ -69,7 +71,7 @@ export function SettingsGeneralForm({ initialName, initialSlug, orgSlug, canMana
       {canManage && (
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !changed}
           className="rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           {saving ? "Saving..." : "Save"}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string; id: string } }) {
   const session = await getSession();
@@ -60,10 +61,24 @@ export async function PATCH(request: Request, { params }: { params: { slug: stri
     delete changes.createdAt;
     delete changes.updatedAt;
 
-    return tx.lead.update({
+    const result = await tx.lead.update({
       where: { id: params.id },
       data: changes,
     });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: old.organizationId,
+        userId: session.userId,
+        userName: session.name ?? "Unknown",
+        action: "lead.updated",
+        targetType: "Lead",
+        targetId: params.id,
+        metadata: changes,
+      },
+    });
+
+    return result;
   });
 
   return NextResponse.json(updated);
@@ -79,7 +94,24 @@ export async function DELETE(request: Request, { params }: { params: { slug: str
   try { requirePermission(lead._membershipRole, "manage_leads"); }
   catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
-  await prisma.lead.delete({ where: { id: params.id } });
+  const leadData = await prisma.lead.findUniqueOrThrow({ where: { id: params.id } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.lead.delete({ where: { id: params.id } });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: leadData.organizationId,
+        userId: session.userId,
+        userName: session.name ?? "Unknown",
+        action: "lead.deleted",
+        targetType: "Lead",
+        targetId: params.id,
+        metadata: { name: leadData.name, email: leadData.email, stage: leadData.stage },
+      },
+    });
+  });
+
   return new NextResponse(null, { status: 204 });
 }
 

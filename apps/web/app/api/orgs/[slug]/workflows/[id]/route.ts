@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string; id: string } }) {
   const session = await getSession();
@@ -100,6 +101,18 @@ export async function PUT(request: Request, { params }: { params: { slug: string
           sourceHandle: edge.sourceHandle || null,
         })),
       });
+
+      await tx.auditLog.create({
+        data: {
+          organizationId: membership.organizationId,
+          userId: session.userId,
+          userName: session.name ?? "Unknown",
+          action: "workflow.updated",
+          targetType: "Workflow",
+          targetId: params.id,
+          metadata: { nodeCount: body.nodes.length, edgeCount: body.edges.length },
+        },
+      });
     });
 
     // Fetch and return after transaction
@@ -137,6 +150,21 @@ export async function DELETE(request: Request, { params }: { params: { slug: str
   });
   if (!workflow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.workflow.delete({ where: { id: params.id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.workflow.delete({ where: { id: params.id } });
+
+    await tx.auditLog.create({
+      data: {
+        organizationId: membership.organizationId,
+        userId: session.userId,
+        userName: session.name ?? "Unknown",
+        action: "workflow.deleted",
+        targetType: "Workflow",
+        targetId: params.id,
+        metadata: { name: workflow.name },
+      },
+    });
+  });
+
   return new NextResponse(null, { status: 204 });
 }

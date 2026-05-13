@@ -79,13 +79,11 @@ export function LeadTableClient({ initialLeads, initialTotal, orgSlug, canManage
       if (!res.ok) throw new Error("Failed to create");
       return res.json();
     },
-    onMutate: async () => {
+    onSuccess: () => {
       setCreateOpen(false);
       setNewName("");
       setNewEmail("");
       setNewStage("new");
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", orgSlug] });
       router.refresh();
     },
