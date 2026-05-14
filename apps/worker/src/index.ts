@@ -363,6 +363,21 @@ worker.on("drained", () => {
   writeHealth({ status: "running", activeRuns: 0 });
 });
 
+// ── Healthcheck HTTP server (for Railway/container probes) ──────────
+const healthPort = parseInt(process.env.PORT ?? "8080", 10);
+
+async function startHealthServer() {
+  const { createServer } = await import("http");
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", activeRuns: activeJobCount }));
+  });
+  server.listen(healthPort, () => {
+    console.log(`Healthcheck server listening on :${healthPort}`);
+  });
+}
+startHealthServer();
+
 // ── Graceful shutdown ───────────────────────────────────────────────
 async function shutdown() {
   console.log("Shutting down worker...");
