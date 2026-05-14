@@ -426,7 +426,7 @@ None — all blockers resolved.
 | 1 | No tests | ⬜ Zero test files |
 | 2 | `useWorkflowRun.ts` hooks hardcodes `demo-org` | ⬜ Unused file |
 | 3 | No webhook/cron triggers | ⬜ Manual trigger only |
-| 4 | Action nodes are mock (no real email/webhook integration) | ⬜ |
+| 4 | Action nodes are mock (no real email/webhook integration) | ✅ Resend SDK integrated, `send_email` action sends real emails with {{variable}} templates |
 
 ### Next steps
 

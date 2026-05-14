@@ -62,6 +62,7 @@ packages/
 - **API layer**: 30+ Route Handlers with session + RBAC permission checks. JSON logging on auth/AI routes.
 - **Worker**: BullMQ Worker consuming `workflow-runs` queue. DAG execution via Kahn's topological sort. Condition branching, delay nodes (BullMQ delay), retry with backoff.
 - **AI**: DeepSeek API client. 4 AI endpoints: suggest-nodes, generate-workflow, score-lead, analyze-run. Feature flags via `lib/feature-flags.ts`.
+- **Email**: Resend SDK. `apps/worker/src/email.ts` — template variable resolution (`{{lead.email}}`) + send. Worker `executeNode` calls real email when action is `send_email`.
 - **DB**: PrismaClient singleton cached on `globalThis`. `experimental.serverComponentsExternalPackages: ["@prisma/client"]` in next.config for Vercel.
 
 ### Key files
@@ -78,11 +79,12 @@ apps/web/lib/logger.ts            — Structured JSON logging
 apps/web/middleware.ts            — JWT guard + rate limiting (100 req/min per IP)
 apps/web/next.config.js           — transpilePackages: [worker], experimental.serverComponentsExternalPackages: [@prisma/client]
 apps/web/vercel.json              — Vercel build config (prisma generate → next build)
-apps/worker/src/queue.ts          — Direct Redis connection + BullMQ Queue (no Proxy — caused BullMQ method resolution issues)
-apps/worker/src/index.ts          — Worker: DAG execution, retry, condition eval, delay, HTTP healthcheck server
+apps/worker/src/queue.ts          — Direct Redis connection + BullMQ Queue
+apps/worker/src/email.ts          — Resend email sender + {{variable}} template resolver
+apps/worker/src/index.ts          — Worker: DAG execution, real email, retry, condition eval, delay, HTTP healthcheck
 packages/db/prisma/schema.prisma  — All 10 models with @opsflow schema
 packages/db/index.ts              — PrismaClient singleton export
-packages/db/prisma.config.ts      — Prisma 6 config (schema path)
+packages/db/seed-production.ts    — 3 sellable workflow templates + 5 demo leads
 ```
 
 ### State of the project (2026-05-14)
