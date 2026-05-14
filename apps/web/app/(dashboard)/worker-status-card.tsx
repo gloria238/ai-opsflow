@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function WorkerStatusCard() {
+export function WorkerStatusCard({ orgSlug }: { orgSlug: string }) {
   const [data, setData] = useState<{
     worker: { status: string; lastPoll?: string; activeRuns?: number };
     queue: { queued: number; running: number; dead_letter: number };
@@ -14,8 +14,7 @@ export function WorkerStatusCard() {
     let cancelled = false;
     async function fetchHealth() {
       try {
-        const slug = window.location.pathname.split("/")[2] || "demo-org";
-        const res = await fetch(`/api/orgs/${slug}/worker/health`);
+        const res = await fetch(`/api/orgs/${orgSlug}/worker/health`);
         if (!res.ok) return;
         const d = await res.json();
         if (!cancelled) setData(d);
