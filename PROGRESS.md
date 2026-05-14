@@ -424,7 +424,7 @@ Created `lib/audit.ts` helper and added audit logging to 7 mutation endpoints:
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | `lib/audit.ts` TS type error (Prisma JSON column types) | 🔧 Needs fix |
+| 1 | `lib/audit.ts` TS type error (Prisma JSON column types) | ✅ Fixed — use `AuditLogUncheckedCreateInput` |
 | 2 | Worker not deployed to Railway | ⬜ `railway.toml` ready, CLI binary blocked by GFW |
 | 3 | Demo data not seeded on production DB | ⬜ Need to run seed against production DB |
 | 4 | `REDIS_URL` not set on Vercel (needed for trigger/retry) | ⬜ |

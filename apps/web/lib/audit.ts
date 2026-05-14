@@ -11,6 +11,6 @@ export async function logAudit(params: {
   metadata?: Record<string, unknown>;
 }) {
   await prisma.auditLog.create({
-    data: params as Prisma.AuditLogCreateInput,
+    data: params as Prisma.AuditLogUncheckedCreateInput,
   });
 }
