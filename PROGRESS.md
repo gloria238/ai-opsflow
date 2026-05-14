@@ -16,10 +16,11 @@
 | Phase 5: Internal Ops | ✅ Done | 100% |
 | Phase 6: Deployment | ✅ Done | 100% |
 
-**Total source code:** ~6,300 lines across ~125 files
+**Total source code:** ~6,500 lines across ~140 files
 **API endpoints:** 30 total + SSE stream
-**Infrastructure:** TanStack Query, SSE, Rate Limiting, Feature Flags, Structured Logging
+**Infrastructure:** TanStack Query, SSE, Rate Limiting, Feature Flags, Structured Logging, Resend Email, BullMQ Queue
 **Database tables:** 10 models + 1 enum
+**Templates:** 3 sellable workflows (Lead Qualification, Cold Outreach, Trial Nurture)
 
 ---
 
@@ -426,12 +427,13 @@ None — all blockers resolved.
 | 1 | No tests | ⬜ Zero test files |
 | 2 | `useWorkflowRun.ts` hooks hardcodes `demo-org` | ⬜ Unused file |
 | 3 | No webhook/cron triggers | ⬜ Manual trigger only |
-| 4 | Action nodes are mock (no real email/webhook integration) | ✅ Resend SDK integrated, `send_email` action sends real emails with {{variable}} templates |
+| 4 | Action nodes are mock (no real email/webhook integration) | ✅ Resend SDK, `send_email` sends real emails with `{{variable}}` templates |
+| 5 | Sellable workflow templates | ✅ 3 templates: Lead Qualification, Cold Outreach, Trial Nurture |
 
 ### Next steps
 
 1. Push all commits via GitHub Desktop + `npx vercel --prod --cwd apps/web`
-2. Run `pnpm seed-prod <org-slug>` with production DATABASE_URL for demo data
-3. Add webhook/cron triggers for automated workflow execution
-4. Integrate real email (Resend/SendGrid) into action nodes
+2. Add `RESEND_API_KEY` + `EMAIL_FROM` to Vercel and Railway env vars
+3. Run `pnpm seed-prod <org-slug>` with production DATABASE_URL for templates & leads
+4. Add webhook/cron triggers for automated workflow execution
 5. Write tests — at minimum smoke tests for critical paths

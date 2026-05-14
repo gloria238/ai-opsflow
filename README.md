@@ -1,7 +1,8 @@
 # OpsFlow AI
 
-> A production SaaS — multi-tenant AI workflow automation platform with built-in CRM.
-> Deployed on Vercel + Railway + Supabase + Upstash Redis.
+### Multi-tenant workflow automation CRM for SMB sales and operations teams.
+
+Teams can: automate lead follow-ups · trigger AI-powered workflows · send automated emails · manage async job queues · monitor execution in real-time.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js">
@@ -10,192 +11,205 @@
   <img src="https://img.shields.io/badge/Prisma-6-indigo?logo=prisma" alt="Prisma">
   <img src="https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/BullMQ-v5-red?logo=redis" alt="BullMQ">
-  <img src="https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss" alt="Tailwind">
-  <img src="https://img.shields.io/badge/Turborepo-FF6B35?logo=turborepo" alt="Turborepo">
+  <img src="https://img.shields.io/badge/Resend-Email-7B68EE" alt="Resend">
   <img src="https://img.shields.io/badge/DeepSeek-AI-7B68EE" alt="DeepSeek AI">
+  <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel">
+  <img src="https://img.shields.io/badge/Railway-Worker-0B0D0E?logo=railway" alt="Railway">
 </p>
+
+---
+
+## System Architecture
+
+```
+                              ┌──────────────────────┐
+                              │     End User Browser  │
+                              │  React 18 · SSE ·     │
+                              │  TanStack Query ·     │
+                              │  React Flow Builder   │
+                              └──────────┬───────────┘
+                                         │ HTTPS
+                              ┌──────────▼───────────┐
+                              │    Vercel (Edge)      │
+                              │                        │
+                              │  ┌──────────────────┐  │
+                              │  │ Next.js 14        │  │
+                              │  │ App Router        │  │
+                              │  │ 30+ API Routes    │  │
+                              │  │ Middleware (JWT)  │  │
+                              │  │ SSE Streaming     │  │
+                              │  └────────┬─────────┘  │
+                              └───────────┼────────────┘
+                                          │
+                    ┌─────────────────────┼─────────────────────┐
+                    │                     │                     │
+          ┌─────────▼──────┐  ┌──────────▼──────┐  ┌──────────▼──────┐
+          │  Supabase       │  │  Upstash Redis   │  │  DeepSeek API    │
+          │  PostgreSQL 16  │  │  (BullMQ Queue)  │  │  (AI Inference)  │
+          │                 │  │                  │  │                  │
+          │  • 10 models    │  │  • workflow-runs │  │  • suggest-nodes │
+          │  • opsflow      │  │  • concurrency 5 │  │  • score-lead    │
+          │    schema       │  │  • native delay  │  │  • analyze-run   │
+          │  • pooled conn  │  │  • job retry     │  │  • generate-wf   │
+          └─────────────────┘  └────────┬─────────┘  └──────────────────┘
+                                        │
+                              ┌─────────▼──────────┐
+                              │   Railway (Worker)  │
+                              │                     │
+                              │  ┌───────────────┐  │
+                              │  │ BullMQ Worker  │  │
+                              │  │                │  │
+                              │  │ • DAG Execution│  │
+                              │  │ • Condition    │  │
+                              │  │   Branching    │  │
+                              │  │ • Delay Nodes  │  │
+                              │  │ • Retry Logic  │  │
+                              │  │ • Real Email   │──┼───► Resend API
+                              │  │   via Resend   │  │    (Email Delivery)
+                              │  └───────────────┘  │
+                              └─────────────────────┘
+```
+
+| Component | Platform | Role |
+|-----------|----------|------|
+| Web App | Vercel | Next.js 14 · Server Components · API Routes · SSE |
+| Worker | Railway | BullMQ consumer · DAG engine · Email sender |
+| Database | Supabase | PostgreSQL 16 · 10 models · `opsflow` schema |
+| Queue | Upstash Redis | Job persistence · delay scheduling · concurrency |
+| Email | Resend | Template variables · real delivery · 100/day free |
+| AI | DeepSeek | Lead scoring · workflow generation · anomaly detection |
 
 ---
 
 ## What It Does
 
-A SaaS platform where teams manage leads and automate their workflow. Users drag-and-drop to build automation flows, trigger them manually or via API, and watch execution happen in real-time via SSE streaming. AI assists with lead scoring, workflow generation, and anomaly detection.
-
-**Core use case**: a 5-50 person sales team that needs CRM + email automation in one tool, without paying HubSpot prices.
-
----
-
-## Feature Overview
+**CRM + Workflow Automation in one platform.** Not two glued-together products — a single system where leads flow through automated workflows.
 
 ### CRM
-- Lead pipeline with Kanban stages (new → qualified → proposal → negotiation → closed)
-- Full-text search, stage filtering, pagination, column sorting
+- Lead pipeline with stages: new → qualified → proposal → negotiation → closed-won / closed-lost
+- Full-text search, stage filter, pagination, column sorting
 - Activity log per lead (notes, stage changes, assignments)
-- AI lead scoring — click a button, DeepSeek scores each lead as hot/warm/cold
+- AI lead scoring — one click, instant hot/warm/cold label
 
 ### Workflow Builder
-- React Flow canvas — drag nodes from palette, connect edges, configure in sidebar
-- 4 node types: Trigger, Action, Condition, Delay
-- Natural language → full workflow graph (AI generation)
-- Context-aware node suggestions (AI copilot)
-- Versioned — every save creates an immutable WorkflowVersion
+- Visual drag-and-drop canvas (React Flow)
+- 4 node types: **Trigger** · **Action** · **Condition** · **Delay**
+- AI generates workflows from natural language descriptions
+- AI suggests next nodes as you build
+- Every save creates an immutable version (audit trail)
 
 ### Execution Engine
-- DAG execution with Kahn's topological sort
-- Condition branching with dot-notation field resolution
-- Delay nodes via BullMQ native delay (no polling)
-- Per-node retry with exponential backoff, dead-letter queue on exhaustion
-- SSE real-time streaming of run status to browser
-- AI anomaly analysis on failed runs
+- DAG execution with topological sort (Kahn's algorithm)
+- Condition branching with dot-notation field resolution (`lead.email`, `user.name`)
+- Delay nodes via BullMQ native scheduling (no polling, no clock drift)
+- Per-node retry with linear backoff → dead-letter queue on exhaustion
+- SSE streaming — watch runs execute in real-time, node by node
+
+### Email Automation
+- **Real email delivery via Resend**
+- Template variables: `{{lead.email}}`, `{{user.name}}`, `{{sales_email}}`
+- Used in all 3 production workflow templates
 
 ### Multi-Tenant SaaS
-- Organization isolation at the query level (every route scoped by `organizationId`)
-- 4 roles × 7 permissions (owner, admin, operator, viewer)
+- Organization isolation at query level
+- 4 roles × 7 permissions (owner / admin / operator / viewer)
 - Custom JWT with httpOnly cookies + middleware guard
 - Org switcher for multi-org users
-- Full audit log — every mutation tracked with actor, target, and metadata
-- Rate limiting: 100 req/min per IP, sliding window
-
-### Operations
-- Global runs dashboard — filter by status, retry failed, cancel stuck
-- Worker health monitoring — real-time status on dashboard
-- Member management — invite, role change, remove (with last-owner protection)
+- Full audit log — every mutation tracked
 
 ---
 
-## Architecture
+## 3 Sellable Workflow Templates
 
-```
-apps/web (Next.js 14, 30+ API routes)
-  ├── Server Components for data fetching
-  ├── Client Components for interactivity (TanStack Query, Zustand, SSE)
-  └── Middleware: JWT guard + RBAC + rate limiting
+These ship with the product. Customers deploy them in minutes.
 
-apps/worker (Node.js + BullMQ)
-  └── Consumes "workflow-runs" queue, executes DAG, writes events to DB
+### 1. Lead Qualification
+`New lead → AI score → hot → notify sales / cold → nurture`
 
-packages/db (Prisma 6 + PostgreSQL)
-  └── 10 models in opsflow schema, PrismaClient singleton
-```
+Sell to: **sales teams** who need automated lead triage.
 
-### Data Flow: Trigger → Execution → UI Update
+### 2. Cold Outreach Follow-up
+`Initial email → wait 2 days → no reply? → follow-up → wait 3 days → close lead`
 
-```
-User clicks "Run Now"
-  → API creates WorkflowRun (status: queued)
-  → queue.add("execute", { runId })
-  → Worker picks up job
-  → DAG executes (topo sort → condition eval → node execution → retry)
-  → Events written to DB
-  → SSE pushes updated run state to browser
-  → UI shows green/red/blue status on each node
-```
+Sell to: **SDR teams** running email outreach campaigns.
 
-### Tech Stack
+### 3. Trial User Nurture
+`Signup → onboarding email → wait 3 days → usage reminder → wait 4 days → sales alert`
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Framework | Next.js 14 App Router | RSC + SSR + API routes co-located |
-| Database | PostgreSQL (Supabase) | Managed, pooled, multi-schema |
-| ORM | Prisma 6 | Type-safe, migrations, multi-schema |
-| Queue | BullMQ + Upstash Redis | Delay, retry, concurrency, no sidecar |
-| Auth | Custom JWT (jose) + bcryptjs | Zero external dependencies, httpOnly cookies |
-| AI | DeepSeek API | 4 endpoints: suggest, generate, score, analyze |
-| UI | Tailwind CSS + shadcn-style components | Utility-first, component primitives |
-| State | TanStack Query + Zustand | Server cache + client state |
-| Real-time | SSE (EventSource) | Built-in reconnect, HTTP-native |
-| Monorepo | pnpm + Turborepo | Shared DB client, parallel build |
-| Deploy | Vercel (web) + Railway (worker) | No Docker, no K8s |
-
-### Multi-Tenant Isolation Pattern
-
-Every API route follows the same 3-step pattern:
-
-```typescript
-// 1. Resolve membership (fails if user doesn't belong to org)
-const membership = await prisma.membership.findFirst({
-  where: { userId: session.userId, organization: { slug: params.slug } },
-});
-if (!membership) return 404;
-
-// 2. Check permission
-requirePermission(membership.role, "manage_workflows");
-
-// 3. Scope query
-const data = await prisma.workflow.findMany({
-  where: { organizationId: membership.organizationId },
-});
-```
+Sell to: **SaaS companies** converting trial users to paid.
 
 ---
 
-## Database Schema
+## For Recruiters & Clients
 
-```
-Organization
-  ├── Membership → User (many-to-many, 4 roles)
-  ├── Workflow → WorkflowVersion (immutable snapshots)
-  │     ├── WorkflowNode (typed + JSON config, canvas position)
-  │     └── WorkflowEdge (DAG connections, condition handles)
-  ├── WorkflowRun (status: queued→running→completed/failed/dead_letter)
-  │     └── WorkflowRunEvent (per-node execution log, append-only)
-  ├── Lead (CRM, stage tracking)
-  │     └── LeadActivity (change log)
-  └── AuditLog (org-wide immutable trail)
-```
+This project demonstrates production-grade SaaS engineering:
 
-10 models, 1 enum, `opsflow` PostgreSQL schema. ~6,300 lines across ~125 files.
-
----
-
-## Why This Project Matters (For Hiring)
-
-If you're evaluating me as a candidate, this project demonstrates:
-
-- **SaaS from scratch** — multi-tenant, auth, RBAC, billing-ready architecture
-- **Production deployment** — Vercel + Railway + Supabase, not just localhost
-- **Queue-based architecture** — BullMQ job processing with retry and delay
-- **Real-time updates** — SSE streaming, not polling
-- **AI integration** — 4 AI endpoints with feature flags and structured logging
-- **Monorepo engineering** — pnpm workspaces, Turborepo, shared packages
-- **6,300 lines delivered** — not a tutorial project, a real working app
+- **Full-stack delivery** — 30+ API routes, 135 files, 6,400+ lines of TypeScript
+- **Queue-based architecture** — BullMQ with retry, delay, dead-letter queue
+- **Real-time streaming** — SSE push from worker to browser, not polling
+- **Multi-tenant from day one** — org isolation, RBAC, audit log, rate limiting
+- **Real integrations** — Resend email, DeepSeek AI, Supabase, Upstash
+- **Deployed** — Vercel + Railway, not localhost
+- **Product thinking** — 3 sellable templates, not just builder features
 
 ---
 
 ## Local Development
 
 ```bash
-# Install
 pnpm install
+pnpm dev                # start web + worker
+pnpm seed               # fresh demo data (destructive)
+pnpm seed-prod <slug>   # safe seed into existing org
+pnpm seed-members <slug> # add test users for RBAC testing
+pnpm build              # build all packages
+```
 
-# Start everything
-pnpm dev
+### Environment Variables
 
-# Seed demo data
-pnpm seed
+```bash
+# Web (Vercel)
+DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
+JWT_SECRET=your-secret
+REDIS_URL=redis://...
+DEEPSEEK_API_KEY=sk-...
 
-# Seed test members (for permission testing)
-pnpm seed-members <org-slug>
+# Worker (Railway) — all of the above plus:
+RESEND_API_KEY=re_xxxxx
+EMAIL_FROM=OpsFlow <noreply@yourdomain.com>
+PORT=8080
+```
 
-# Deploy web
-npx vercel --prod --cwd apps/web
+### Deploy
+
+```bash
+npx vercel --prod --cwd apps/web     # web app
+# Worker auto-deploys on git push to main (Railway)
 ```
 
 ---
 
-## Project Status
+## Tech Stack
 
-| Phase | Status |
+| Layer | Choice |
 |-------|--------|
-| Auth + Org + RBAC | Done |
-| CRM Core | Done |
-| Workflow Engine | Done |
-| AI Layer | Done |
-| Internal Ops | Done |
-| Deployment | Deployed |
-
-**Next**: webhook/cron triggers, email integration, workflow template marketplace.
+| Framework | Next.js 14 App Router |
+| Language | TypeScript 5 |
+| Database | PostgreSQL 16 (Supabase, pooled) |
+| ORM | Prisma 6 (multi-schema) |
+| Queue | BullMQ v5 + Upstash Redis |
+| Email | Resend SDK |
+| AI | DeepSeek API |
+| Auth | Custom JWT (jose) + bcryptjs + httpOnly cookies |
+| State | TanStack Query + Zustand |
+| Real-time | SSE (EventSource API) |
+| Canvas | React Flow (@xyflow/react) |
+| UI | Tailwind CSS + shadcn-style components |
+| Toast | Sonner |
+| Monorepo | pnpm workspaces + Turborepo |
+| Hosting | Vercel (web) + Railway (worker) |
 
 ---
 
-*Built with Next.js 14, Prisma 6, BullMQ, PostgreSQL, TypeScript, and Tailwind CSS.*
+*Built with Next.js 14, Prisma 6, BullMQ, PostgreSQL, TypeScript, and Tailwind CSS. ~6,400 lines across ~135 files.*

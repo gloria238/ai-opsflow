@@ -89,10 +89,12 @@ packages/db/seed-production.ts    — 3 sellable workflow templates + 5 demo lea
 
 ### State of the project (2026-05-14)
 
-- **All 6 phases complete**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops, Deployment
-- **~6,400 lines** across ~135 files. 30 API routes + SSE streaming endpoint + 10 loading.tsx skeletons.
+- **All 6 phases complete + Email + Templates**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops, Deployment
+- **~6,500 lines** across ~140 files. 30 API routes + SSE streaming + 10 loading.tsx skeletons + 3 sellable templates.
 - Web app: ✅ Vercel (login, dashboard, workflows, leads, runs, settings, members, audit log all functional).
-- Worker: ✅ Railway (BullMQ consuming queue, DAG execution, healthcheck HTTP server).
+- Worker: ✅ Railway (BullMQ consuming queue, DAG execution, real email via Resend, healthcheck HTTP server).
+- Email: ✅ Resend SDK — `send_email` action sends real emails with `{{variable}}` template resolution.
+- Templates: 3 production workflows (Lead Qualification, Cold Outreach Follow-up, Trial User Nurture).
 - AI: 4 endpoints (suggest-nodes, generate-workflow, score-lead, analyze-run) via DeepSeek API.
 - UX: sonner toast notifications on all actions, loading skeletons on all pages, button loading states persist through navigation.
 - GitHub push via Desktop works. `npx vercel --prod --cwd apps/web` for manual Vercel deploy.
@@ -100,6 +102,7 @@ packages/db/seed-production.ts    — 3 sellable workflow templates + 5 demo lea
 - `lib/audit.ts` — Fixed `AuditLogCreateInput` → `AuditLogUncheckedCreateInput`. Audit log added to 10 mutation endpoints.
 - `.npmrc` with `node-linker=hoisted` — Required for Vercel deployment.
 - `@railway/cli` removed — postinstall GitHub download blocked by GFW on Railway builds.
+- Seed scripts: `pnpm seed` (fresh), `pnpm seed-prod <slug>` (safe, 3 templates + leads), `pnpm seed-members <slug>` (RBAC test accounts).
 - Seed scripts: `pnpm seed` (fresh, destructive), `pnpm seed-prod <slug>` (non-destructive), `pnpm seed-members <slug>` (test accounts).
 
 ### Vercel deployment gotchas (lessons learned)
