@@ -1,16 +1,277 @@
-// Production-safe seed: adds demo workflows & leads to an existing org.
+// Production-safe seed: adds professional workflow templates & demo leads.
 // Does NOT delete any data. Safe to run repeatedly (idempotent).
 //
 // Usage: pnpm tsx packages/db/seed-production.ts <org-slug>
 //
 // Creates if not present:
-//   - 2 demo workflows (Simple Email + Lead Qualification Pipeline)
+//   - 3 sellable workflow templates:
+//       1. Lead Qualification (AI score → route hot/cold)
+//       2. Cold Outreach Follow-up (email → delay → follow-up → close)
+//       3. Trial User Nurture (onboarding → reminder → sales alert)
 //   - 5 demo leads at different stages
-//   - Demo user alice@example.com (only needed for seed org)
 
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+interface TNode {
+  id: string;
+  type: string;
+  label: string;
+  config: Record<string, unknown>;
+  positionX: number;
+  positionY: number;
+}
+
+interface TEdge {
+  sourceNodeId: string;
+  targetNodeId: string;
+  sourceHandle?: string | null;
+}
+
+const TEMPLATES: { name: string; description: string; nodes: TNode[]; edges: TEdge[] }[] = [
+  // ═══════════════════════════════════════════════════════════════════
+  // Template 1: Lead Qualification
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    name: "Lead Qualification",
+    description:
+      "New lead → AI scores it → hot leads notify sales, cold leads enter nurture. Sell this to sales teams who need automated lead triage.",
+    nodes: [
+      {
+        id: "t1",
+        type: "trigger",
+        label: "New Lead",
+        config: { type: "manual" },
+        positionX: 300,
+        positionY: 30,
+      },
+      {
+        id: "a1",
+        type: "action",
+        label: "AI Score Lead",
+        config: { action: "score_lead" },
+        positionX: 300,
+        positionY: 160,
+      },
+      {
+        id: "c1",
+        type: "condition",
+        label: "Score > 70?",
+        config: { field: "score", operator: "greater_than", value: "70" },
+        positionX: 300,
+        positionY: 300,
+      },
+      {
+        id: "a2",
+        type: "action",
+        label: "Notify Sales (Hot Lead)",
+        config: {
+          action: "send_email",
+          to: "{{sales_email}}",
+          subject: "🔥 Hot Lead: {{lead.name}}",
+          body: "Lead scored {{score}}. Name: {{lead.name}}, Email: {{lead.email}}. Follow up immediately.",
+        },
+        positionX: 540,
+        positionY: 430,
+      },
+      {
+        id: "a3",
+        type: "action",
+        label: "Add to Nurture (Cold Lead)",
+        config: {
+          action: "send_email",
+          to: "{{lead.email}}",
+          subject: "Thanks for your interest, {{lead.name}}",
+          body: "Hi {{lead.name}},\n\nThanks for reaching out. We'll be in touch with relevant content.\n\nBest,\nOpsFlow Team",
+        },
+        positionX: 100,
+        positionY: 430,
+      },
+    ],
+    edges: [
+      { sourceNodeId: "t1", targetNodeId: "a1" },
+      { sourceNodeId: "a1", targetNodeId: "c1" },
+      { sourceNodeId: "c1", targetNodeId: "a2", sourceHandle: "true" },
+      { sourceNodeId: "c1", targetNodeId: "a3", sourceHandle: "false" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Template 2: Cold Outreach Follow-up
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    name: "Cold Outreach Follow-up",
+    description:
+      "Send initial email → wait 2 days → no reply? → follow-up → wait 3 days → still no reply? → close lead. Sell this to SDR teams doing cold outreach.",
+    nodes: [
+      {
+        id: "t2",
+        type: "trigger",
+        label: "Start Campaign",
+        config: { type: "manual" },
+        positionX: 300,
+        positionY: 30,
+      },
+      {
+        id: "e1",
+        type: "action",
+        label: "Send Initial Outreach",
+        config: {
+          action: "send_email",
+          to: "{{lead.email}}",
+          subject: "Quick question, {{lead.name}}",
+          body: "Hi {{lead.name}},\n\nI noticed your team at {{lead.company}} is doing great work. Would you be open to a quick chat about streamlining your workflow?\n\nBest,\n{{sender_name}}",
+        },
+        positionX: 300,
+        positionY: 160,
+      },
+      {
+        id: "d1",
+        type: "delay",
+        label: "Wait 2 Days",
+        config: { duration: "2", unit: "days" },
+        positionX: 300,
+        positionY: 300,
+      },
+      {
+        id: "c2",
+        type: "condition",
+        label: "Got Reply?",
+        config: { field: "replied", operator: "equals", value: "true" },
+        positionX: 300,
+        positionY: 440,
+      },
+      {
+        id: "e2",
+        type: "action",
+        label: "Send Follow-up",
+        config: {
+          action: "send_email",
+          to: "{{lead.email}}",
+          subject: "Re: Quick question, {{lead.name}}",
+          body: "Hi {{lead.name}},\n\nJust following up on my previous email. I'd love to show you how we can help {{lead.company}} save 10+ hours per week.\n\nBest,\n{{sender_name}}",
+        },
+        positionX: 100,
+        positionY: 570,
+      },
+      {
+        id: "d2",
+        type: "delay",
+        label: "Wait 3 Days",
+        config: { duration: "3", unit: "days" },
+        positionX: 100,
+        positionY: 700,
+      },
+      {
+        id: "a4",
+        type: "action",
+        label: "Close Lead (No Response)",
+        config: { action: "update_lead", stage: "closed-lost" },
+        positionX: 100,
+        positionY: 830,
+      },
+      {
+        id: "e3",
+        type: "action",
+        label: "Move to Qualified",
+        config: { action: "update_lead", stage: "qualified" },
+        positionX: 540,
+        positionY: 570,
+      },
+    ],
+    edges: [
+      { sourceNodeId: "t2", targetNodeId: "e1" },
+      { sourceNodeId: "e1", targetNodeId: "d1" },
+      { sourceNodeId: "d1", targetNodeId: "c2" },
+      { sourceNodeId: "c2", targetNodeId: "e2", sourceHandle: "false" },
+      { sourceNodeId: "c2", targetNodeId: "e3", sourceHandle: "true" },
+      { sourceNodeId: "e2", targetNodeId: "d2" },
+      { sourceNodeId: "d2", targetNodeId: "a4" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Template 3: Trial User Nurture
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    name: "Trial User Nurture",
+    description:
+      "Signup → onboarding email → 3 days → usage reminder → 4 days → sales alert. Sell this to SaaS companies who need automated trial conversion.",
+    nodes: [
+      {
+        id: "t3",
+        type: "trigger",
+        label: "User Signed Up",
+        config: { type: "manual" },
+        positionX: 300,
+        positionY: 30,
+      },
+      {
+        id: "on1",
+        type: "action",
+        label: "Send Onboarding Email",
+        config: {
+          action: "send_email",
+          to: "{{user.email}}",
+          subject: "Welcome to OpsFlow, {{user.name}}!",
+          body: "Hi {{user.name}},\n\nWelcome aboard! Here's how to get started:\n1. Create your first workflow\n2. Import your leads\n3. Run your first automation\n\nNeed help? Reply to this email.\n\nBest,\nOpsFlow Team",
+        },
+        positionX: 300,
+        positionY: 160,
+      },
+      {
+        id: "d3",
+        type: "delay",
+        label: "Wait 3 Days",
+        config: { duration: "3", unit: "days" },
+        positionX: 300,
+        positionY: 300,
+      },
+      {
+        id: "on2",
+        type: "action",
+        label: "Send Usage Reminder",
+        config: {
+          action: "send_email",
+          to: "{{user.email}}",
+          subject: "{{user.name}}, here's what you can do with OpsFlow",
+          body: "Hi {{user.name}},\n\nYou've been on OpsFlow for 3 days. Did you know you can:\n• Automate lead scoring with AI\n• Set up email follow-up sequences\n• Track your pipeline in real-time\n\nLog in and try the Lead Qualification template!\n\nBest,\nOpsFlow Team",
+        },
+        positionX: 300,
+        positionY: 440,
+      },
+      {
+        id: "d4",
+        type: "delay",
+        label: "Wait 4 Days",
+        config: { duration: "4", unit: "days" },
+        positionX: 300,
+        positionY: 570,
+      },
+      {
+        id: "a5",
+        type: "action",
+        label: "Alert Sales Team",
+        config: {
+          action: "send_email",
+          to: "{{sales_email}}",
+          subject: "Trial user {{user.name}} needs attention",
+          body: "Trial user {{user.name}} ({{user.email}}) has been on the platform for 7 days.\n\nReach out and help them get value from the product.",
+        },
+        positionX: 300,
+        positionY: 700,
+      },
+    ],
+    edges: [
+      { sourceNodeId: "t3", targetNodeId: "on1" },
+      { sourceNodeId: "on1", targetNodeId: "d3" },
+      { sourceNodeId: "d3", targetNodeId: "on2" },
+      { sourceNodeId: "on2", targetNodeId: "d4" },
+      { sourceNodeId: "d4", targetNodeId: "a5" },
+    ],
+  },
+];
 
 async function main() {
   const orgSlug = process.argv[2];
@@ -27,63 +288,34 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Seeding demo data into: ${org.name} (${org.slug})\n`);
+  console.log(`Seeding templates & leads into: ${org.name} (${org.slug})\n`);
 
-  // ── Demo workflows ──────────────────────────────────────────────────
+  // ── Workflow templates ─────────────────────────────────────────────
 
   const existingWf = await prisma.workflow.count({ where: { organizationId: org.id } });
   if (existingWf > 0) {
-    console.log(`Org already has ${existingWf} workflow(s), skipping workflow seed.`);
+    console.log(`Org already has ${existingWf} workflow(s), skipping template seed.\n`);
   } else {
-    // Simple Email Workflow
-    const simpleWf = await prisma.workflow.create({
-      data: {
-        organizationId: org.id,
-        name: "Simple Email Workflow",
-        description: "Trigger → Send email",
-        versions: { create: [{ version: 1 }] },
-      },
-      include: { versions: true },
-    });
-    const svId = simpleWf.versions[0].id;
-    const t1 = await prisma.workflowNode.create({
-      data: { versionId: svId, type: "trigger", label: "Manual Trigger", config: {}, positionX: 250, positionY: 50 },
-    });
-    const a1 = await prisma.workflowNode.create({
-      data: { versionId: svId, type: "action", label: "Send Email", config: { action: "send_email" }, positionX: 250, positionY: 200 },
-    });
-    await prisma.workflowEdge.create({
-      data: { versionId: svId, sourceNodeId: t1.id, targetNodeId: a1.id },
-    });
-    console.log('Created "Simple Email Workflow"');
-
-    // Lead Qualification Pipeline
-    const complexWf = await prisma.workflow.create({
-      data: {
-        organizationId: org.id,
-        name: "Lead Qualification Pipeline",
-        description: "Route leads based on email domain",
-        versions: { create: [{ version: 1 }] },
-      },
-      include: { versions: true },
-    });
-    const cvId = complexWf.versions[0].id;
-    const trig = await prisma.workflowNode.create({
-      data: { versionId: cvId, type: "trigger", label: "Webhook Received", config: { type: "webhook" }, positionX: 350, positionY: 30 },
-    });
-    const cond = await prisma.workflowNode.create({
-      data: { versionId: cvId, type: "condition", label: "Is Company Email?", config: { field: "lead.email", operator: "contains", value: "@company.com" }, positionX: 350, positionY: 200 },
-    });
-    const hot = await prisma.workflowNode.create({
-      data: { versionId: cvId, type: "action", label: "Mark as Hot Lead", config: { action: "update_lead" }, positionX: 550, positionY: 320 },
-    });
-    const cold = await prisma.workflowNode.create({
-      data: { versionId: cvId, type: "action", label: "Send Nurture Email", config: { action: "send_email" }, positionX: 150, positionY: 320 },
-    });
-    await prisma.workflowEdge.create({ data: { versionId: cvId, sourceNodeId: trig.id, targetNodeId: cond.id } });
-    await prisma.workflowEdge.create({ data: { versionId: cvId, sourceNodeId: cond.id, targetNodeId: hot.id } });
-    await prisma.workflowEdge.create({ data: { versionId: cvId, sourceNodeId: cond.id, targetNodeId: cold.id } });
-    console.log('Created "Lead Qualification Pipeline"');
+    for (const tmpl of TEMPLATES) {
+      const wf = await prisma.workflow.create({
+        data: {
+          organizationId: org.id,
+          name: tmpl.name,
+          description: tmpl.description,
+          versions: { create: [{ version: 1 }] },
+        },
+        include: { versions: true },
+      });
+      const versionId = wf.versions[0].id;
+      for (const n of tmpl.nodes) {
+        await prisma.workflowNode.create({ data: { versionId, ...n } });
+      }
+      for (const e of tmpl.edges) {
+        await prisma.workflowEdge.create({ data: { versionId, ...e } });
+      }
+      console.log(`Created "${tmpl.name}" (${tmpl.nodes.length} nodes, ${tmpl.edges.length} edges)`);
+    }
+    console.log("");
   }
 
   // ── Demo leads ──────────────────────────────────────────────────────
@@ -105,7 +337,7 @@ async function main() {
     console.log(`Created ${leads.length} demo leads`);
   }
 
-  console.log("\nSeed complete.");
+  console.log("\nDone. Templates ready at /workflows");
 }
 
 main()

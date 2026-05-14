@@ -2,6 +2,7 @@ import http from "node:http";
 import { Worker, Job } from "bullmq";
 import { prisma } from "@opsflow/db";
 import { connection, workflowQueue } from "./queue";
+import { sendEmail } from "./email";
 
 interface NodeShape {
   id: string;
@@ -144,6 +145,17 @@ async function executeNode(
 
     case "action": {
       const action = (node.config.action as string) ?? "unknown";
+
+      if (action === "send_email") {
+        const result = await sendEmail(node.config as unknown as Parameters<typeof sendEmail>[0], input);
+        return {
+          action: "send_email",
+          messageId: result.messageId,
+          to: result.to,
+          executedAt: new Date().toISOString(),
+        };
+      }
+
       return {
         action,
         result: `executed ${action}`,
