@@ -14,7 +14,7 @@
 | Phase 3: Workflow Engine | ✅ Done | 100% |
 | Phase 4: AI Layer | ✅ Done | 100% |
 | Phase 5: Internal Ops | ✅ Done | 100% |
-| Phase 6: Deployment | 🔄 In Progress | 85% |
+| Phase 6: Deployment | 🔄 In Progress | 87% |
 
 **Total source code:** ~6,300 lines across ~125 files
 **API endpoints:** 30 total + SSE stream
@@ -387,6 +387,7 @@ packages/db (Prisma 6 + PostgreSQL)
 | **`vercel.json` build config** | `apps/web/vercel.json` | `prisma generate` → `next build` |
 | **Split bcrypt from auth** | `lib/password.ts`, `lib/auth.ts` | bcryptjs (Node.js) separated from Edge JWT code |
 | **Pass org slug as prop** | `worker-status-card.tsx`, `page.tsx` | Client components must receive orgSlug from server, NOT extract from URL (root `/` path yields `undefined` → fallback `demo-org` doesn't exist in production) |
+| **Re-issue JWT on slug change** | `api/orgs/[slug]/route.ts` | Org PATCH updated DB slug but didn't re-sign JWT cookie → stale `orgSlug` in session → all subsequent API calls 404 |
 
 ### Bugs fixed
 
@@ -403,6 +404,7 @@ packages/db (Prisma 6 + PostgreSQL)
 | 9 | Worker health API 404 on Vercel | Route read local `.worker-health.json` file | Changed to DB-based health queries |
 | 10 | Worker health frontend crash | Simplified debug route didn't return expected `{worker, queue}` format | Restored full DB-based response |
 | 11 | Worker health API STILL 404 after DB fix | `WorkerStatusCard` extracted org slug from `window.location.pathname` — at root path `/` this always fell back to `"demo-org"`, which doesn't exist in production (users have custom slugs like `alice-workspace` from registration) | Pass `orgSlug` as prop from server component; add `force-dynamic` + try-catch in route handler |
+| 12 | Members API 404 — stale JWT after slug change | Org PATCH route updated slug in DB but never re-issued JWT cookie. JWT carried old slug, so membership lookup for old slug returned 404 for ALL subsequent API calls | Re-sign JWT cookie in PATCH handler when `data.slug !== params.slug`; add `force-dynamic` + try-catch to members route |
 
 ### Railway deployment fixes (ongoing)
 
