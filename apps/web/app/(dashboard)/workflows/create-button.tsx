@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Props {
   orgSlug: string;
@@ -24,10 +25,11 @@ export function CreateWorkflowButton({ orgSlug }: Props) {
       });
       if (!res.ok) throw new Error("Failed to create");
       const wf = await res.json();
+      toast.success("Workflow created");
       router.push(`/workflows/${wf.id}/builder`);
+      // keep creating=true — navigation will unmount
     } catch {
-      alert("Failed to create workflow");
-    } finally {
+      toast.error("Failed to create workflow");
       setCreating(false);
     }
   }

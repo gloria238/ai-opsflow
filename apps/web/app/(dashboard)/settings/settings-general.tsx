@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
   orgId: string;
@@ -13,13 +14,11 @@ export function SettingsGeneralForm({ initialName, initialSlug, orgSlug, canMana
   const [name, setName] = useState(initialName);
   const [slug, setSlug] = useState(initialSlug);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   const changed = name !== initialName || slug !== initialSlug;
 
   async function handleSave() {
     setSaving(true);
-    setMessage("");
     try {
       const res = await fetch(`/api/orgs/${orgSlug}`, {
         method: "PATCH",
@@ -33,9 +32,9 @@ export function SettingsGeneralForm({ initialName, initialSlug, orgSlug, canMana
         const data = await res.json();
         throw new Error(data.error || "Save failed");
       }
-      setMessage("Saved successfully");
+      toast.success("Settings saved");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -61,12 +60,6 @@ export function SettingsGeneralForm({ initialName, initialSlug, orgSlug, canMana
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
         />
       </div>
-
-      {message && (
-        <p className={`text-sm ${message === "Saved successfully" ? "text-green-600" : "text-red-600"}`}>
-          {message}
-        </p>
-      )}
 
       {canManage && (
         <button

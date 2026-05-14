@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,14 +27,16 @@ export default function LoginPage() {
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || "Login failed");
+        setLoading(false);
         return;
       }
 
+      toast.success("Signed in successfully");
       router.push("/");
       router.refresh();
+      // keep loading=true — component unmounts on navigation
     } catch {
       setError("Network error");
-    } finally {
       setLoading(false);
     }
   }

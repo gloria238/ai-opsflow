@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +28,7 @@ export function NoteForm({ leadId, orgSlug }: Props) {
         body: JSON.stringify({ content: content.trim() }),
       });
       if (!res.ok) throw new Error("Failed");
+      toast.success("Note added");
       setContent("");
       router.refresh();
     } catch {

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
@@ -27,14 +28,16 @@ export default function RegisterPage() {
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || "Registration failed");
+        setLoading(false);
         return;
       }
 
+      toast.success("Account created successfully");
       router.push("/");
       router.refresh();
+      // keep loading=true — component unmounts on navigation
     } catch {
       setError("Network error");
-    } finally {
       setLoading(false);
     }
   }

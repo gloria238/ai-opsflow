@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   ReactFlow,
   Background,
@@ -180,6 +181,9 @@ function InnerCanvas({
     try {
       await onSave(workflowName, nodes, edges);
       setIsDirty(false);
+      toast.success("Workflow saved");
+    } catch {
+      toast.error("Failed to save workflow");
     } finally {
       setIsSaving(false);
     }

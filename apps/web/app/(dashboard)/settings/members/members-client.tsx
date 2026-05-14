@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Member {
   id: string;
@@ -29,6 +30,7 @@ export function MembersClient({ orgSlug, canManage }: Props) {
       const res = await fetch(`/api/orgs/${orgSlug}/members`);
       if (!res.ok) throw new Error("Failed to fetch");
       setMembers(await res.json());
+      setError("");
     } catch {
       setError("Failed to load members");
     } finally {
@@ -51,11 +53,12 @@ export function MembersClient({ orgSlug, canManage }: Props) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to add member");
       }
+      toast.success("Member added");
       setAddEmail("");
       setAddRole("operator");
       fetchMembers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add member");
+      toast.error(err instanceof Error ? err.message : "Failed to add member");
     } finally {
       setAdding(false);
     }
@@ -72,9 +75,10 @@ export function MembersClient({ orgSlug, canManage }: Props) {
         const data = await res.json();
         throw new Error(data.error || "Failed to update role");
       }
+      toast.success(`Role changed to ${role}`);
       fetchMembers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update role");
+      toast.error(err instanceof Error ? err.message : "Failed to update role");
     }
   }, [orgSlug, fetchMembers]);
 
@@ -88,9 +92,10 @@ export function MembersClient({ orgSlug, canManage }: Props) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to remove member");
       }
+      toast.success("Member removed");
       fetchMembers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to remove member");
+      toast.error(err instanceof Error ? err.message : "Failed to remove member");
     }
   }, [orgSlug, fetchMembers]);
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function EditDialog({ lead, orgSlug }: Props) {
         body: JSON.stringify({ name: name.trim(), email: email.trim() || null }),
       });
       if (!res.ok) throw new Error("Failed");
+      toast.success("Lead updated");
       setOpen(false);
       router.refresh();
     } catch {

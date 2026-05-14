@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -13,20 +14,20 @@ interface Props {
 export function DeleteButton({ leadId, leadName, orgSlug }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleDelete = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await fetch(`/api/orgs/${orgSlug}/leads/${leadId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed");
+      toast.success("Lead deleted");
       router.push("/leads");
+      // keep loading=true — navigation will unmount
     } catch {
-      setError("Failed to delete");
+      toast.error("Failed to delete");
       setLoading(false);
     }
   }, [leadId, orgSlug, router]);
@@ -40,7 +41,6 @@ export function DeleteButton({ leadId, leadName, orgSlug }: Props) {
         <p className="text-sm text-gray-600 mb-4">
           Are you sure you want to delete <strong>{leadName}</strong>? This action cannot be undone.
         </p>
-        {error && <p className="text-sm text-red-500 mb-2">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
           <Button variant="destructive" onClick={handleDelete} disabled={loading}>
