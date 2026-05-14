@@ -13,7 +13,7 @@
   "dependencies": {
     "@opsflow/db": "workspace:*",
     "bullmq": "^5.76.8",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -100,7 +100,7 @@ importers:
         specifier: ^5.76.8
         version: 5.76.8
       ioredis:
-        specifier: ^5.10.1
+        specifier: ^5.4.2
         version: 5.10.1
     devDependencies:
       '@types/node':
