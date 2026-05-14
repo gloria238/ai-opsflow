@@ -1,3 +1,4 @@
+import http from "node:http";
 import { Worker, Job } from "bullmq";
 import { prisma } from "@opsflow/db";
 import { connection, workflowQueue } from "./queue";
@@ -366,15 +367,15 @@ worker.on("drained", () => {
 // ── Healthcheck HTTP server (for Railway/container probes) ──────────
 const healthPort = parseInt(process.env.PORT ?? "8080", 10);
 
-async function startHealthServer() {
-  const { createServer } = await import("http");
-  const server = createServer((_req, res) => {
+function startHealthServer() {
+  const server = http.createServer((_req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "ok", activeRuns: activeJobCount }));
   });
-  server.listen(healthPort, () => {
-    console.log(`Healthcheck server listening on :${healthPort}`);
+  server.listen(healthPort, "0.0.0.0", () => {
+    console.log(`Healthcheck server listening on 0.0.0.0:${healthPort}`);
   });
+  server.on("error", (err) => console.error("Healthcheck server error:", err));
 }
 startHealthServer();
 
