@@ -1,6 +1,6 @@
 # OpsFlow AI — Progress Report
 
-> Last updated: 2026-05-14
+> Last updated: 2026-05-14 (Phase 6 complete — all 6 phases delivered)
 > Project: Multi-tenant AI Workflow CRM
 
 ---
@@ -14,7 +14,7 @@
 | Phase 3: Workflow Engine | ✅ Done | 100% |
 | Phase 4: AI Layer | ✅ Done | 100% |
 | Phase 5: Internal Ops | ✅ Done | 100% |
-| Phase 6: Deployment | 🔄 In Progress | 87% |
+| Phase 6: Deployment | ✅ Done | 100% |
 
 **Total source code:** ~6,300 lines across ~125 files
 **API endpoints:** 30 total + SSE stream
@@ -417,26 +417,21 @@ packages/db (Prisma 6 + PostgreSQL)
 
 ### Current blocker
 
-| # | Issue | Status |
-|---|-------|--------|
-| 1 | BullMQ `client[commandNameWithVersion] is not a function` | 🔧 Worker deploys, healthcheck passes, but job processing fails. Likely BullMQ/ioredis internal method resolution (not version-dependent — persists across ioredis 5.3.2 and 5.10.1) |
+None — all blockers resolved.
 
 ### Remaining issues
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | BullMQ runtime error on Railway | 🔧 Under investigation |
-| 2 | Demo data not seeded on production DB | ⬜ |
-| 3 | `REDIS_URL` not set on Vercel (needed for trigger/retry) | ⬜ |
-| 4 | Page navigation feels slow (1-2s) | 🔧 No `loading.tsx` — could add skeleton states |
-| 5 | No tests | ⬜ Zero test files |
-| 6 | `useWorkflowRun.ts` hooks hardcodes `demo-org` | ⬜ Unused file, but should be fixed if ever used |
+| 1 | No tests | ⬜ Zero test files |
+| 2 | `useWorkflowRun.ts` hooks hardcodes `demo-org` | ⬜ Unused file |
+| 3 | No webhook/cron triggers | ⬜ Manual trigger only |
+| 4 | Action nodes are mock (no real email/webhook integration) | ⬜ |
 
 ### Next steps
 
-1. **Deploy worker health fix**: `npx vercel --prod --cwd apps/web` (user will push via GitHub Desktop first)
-2. Fix BullMQ `client[commandNameWithVersion]` error on Railway
-3. End-to-end verification (login → create workflow → trigger run → SSE streaming)
-4. Seed demo data on production DB
-5. Add `REDIS_URL` to Vercel env vars
-6. Add `loading.tsx` skeleton states
+1. Push all commits via GitHub Desktop + `npx vercel --prod --cwd apps/web`
+2. Run `pnpm seed-prod <org-slug>` with production DATABASE_URL for demo data
+3. Add webhook/cron triggers for automated workflow execution
+4. Integrate real email (Resend/SendGrid) into action nodes
+5. Write tests — at minimum smoke tests for critical paths

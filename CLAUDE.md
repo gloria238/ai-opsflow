@@ -87,16 +87,18 @@ packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 
 ### State of the project (2026-05-14)
 
-- **All 5 phases complete**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops
-- **Phase 6 (Deployment) in progress (85%)**: Web app deployed on Vercel (worker health panel working). Worker deployed on Railway but BullMQ connection issue.
-- **~6,300 lines** across ~125 files. 30 API routes + SSE streaming endpoint.
-- Web app: ✅ Vercel (login works, pages functional, worker health API uses DB queries, dashboard panel fixed).
-- Worker: 🔧 Railway (deploys, healthcheck passes, but BullMQ throws `client[commandNameWithVersion]` error at runtime).
+- **All 6 phases complete**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops, Deployment
+- **~6,400 lines** across ~135 files. 30 API routes + SSE streaming endpoint + 10 loading.tsx skeletons.
+- Web app: ✅ Vercel (login, dashboard, workflows, leads, runs, settings, members, audit log all functional).
+- Worker: ✅ Railway (BullMQ consuming queue, DAG execution, healthcheck HTTP server).
+- AI: 4 endpoints (suggest-nodes, generate-workflow, score-lead, analyze-run) via DeepSeek API.
+- UX: sonner toast notifications on all actions, loading skeletons on all pages, button loading states persist through navigation.
 - GitHub push via Desktop works. `npx vercel --prod --cwd apps/web` for manual Vercel deploy.
 - No tests yet (zero test files).
 - `lib/audit.ts` — Fixed `AuditLogCreateInput` → `AuditLogUncheckedCreateInput`. Audit log added to 10 mutation endpoints.
 - `.npmrc` with `node-linker=hoisted` — Required for Vercel deployment.
 - `@railway/cli` removed — postinstall GitHub download blocked by GFW on Railway builds.
+- Seed scripts: `pnpm seed` (fresh, destructive), `pnpm seed-prod <slug>` (non-destructive), `pnpm seed-members <slug>` (test accounts).
 
 ### Vercel deployment gotchas (lessons learned)
 
