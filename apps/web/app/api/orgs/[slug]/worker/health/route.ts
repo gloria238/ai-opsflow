@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
-import fs from "fs";
-import path from "path";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const session = await getSession();
@@ -17,23 +15,26 @@ export async function GET(request: Request, { params }: { params: { slug: string
   try { requirePermission(membership.role, "view_workflows"); }
   catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
-  // Read worker health file (try multiple paths — CWD is unreliable in monorepo)
-  let worker: Record<string, unknown> = { status: "unknown" };
-  try {
-    const candidates = [
-      path.resolve(process.cwd(), "../../.worker-health.json"),
-      path.resolve(process.cwd(), "../.worker-health.json"),
-      path.resolve(process.cwd(), ".worker-health.json"),
-    ];
-    for (const file of candidates) {
-      if (fs.existsSync(file)) {
-        worker = JSON.parse(fs.readFileSync(file, "utf-8"));
-        break;
-      }
-    }
-  } catch {
-    // Health file unavailable
-  }
+  // Check worker health via DB: worker is alive if any run event was created in the last 5 minutes
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const [recentEvent, latestRun] = await Promise.all([
+    prisma.workflowRunEvent.findFirst({
+      where: { createdAt: { gte: fiveMinAgo } },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
+    prisma.workflowRun.findFirst({
+      where: { status: "running" },
+      orderBy: { startedAt: "desc" },
+      select: { startedAt: true },
+    }),
+  ]);
+
+  const worker = {
+    status: recentEvent ? "running" : "idle",
+    lastPoll: recentEvent?.createdAt?.toISOString() ?? null,
+    activeRuns: await prisma.workflowRun.count({ where: { status: "running" } }),
+  };
 
   // Get queue sizes scoped to this org
   const orgFilter = { workflowVersion: { workflow: { organizationId: membership.organizationId } } };
