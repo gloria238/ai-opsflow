@@ -88,9 +88,9 @@ packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 ### State of the project (2026-05-14)
 
 - **All 5 phases complete**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops
-- **Phase 6 (Deployment) in progress (80%)**: Web app deployed on Vercel. Worker deployed on Railway but BullMQ connection issue.
+- **Phase 6 (Deployment) in progress (85%)**: Web app deployed on Vercel (worker health panel working). Worker deployed on Railway but BullMQ connection issue.
 - **~6,300 lines** across ~125 files. 30 API routes + SSE streaming endpoint.
-- Web app: ✅ Vercel (login works, pages functional, worker health API uses DB queries).
+- Web app: ✅ Vercel (login works, pages functional, worker health API uses DB queries, dashboard panel fixed).
 - Worker: 🔧 Railway (deploys, healthcheck passes, but BullMQ throws `client[commandNameWithVersion]` error at runtime).
 - GitHub push via Desktop works. `npx vercel --prod --cwd apps/web` for manual Vercel deploy.
 - No tests yet (zero test files).
@@ -107,6 +107,7 @@ packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 5. **Edge vs Node**: Middleware runs Edge Runtime — don't import bcryptjs there. Split password functions into separate file.
 6. **Postinstall**: Root `postinstall` runs `prisma generate`. The `@prisma/client` postinstall warning about "schema not found" is harmless.
 7. **pnpm hoisted mode**: `.npmrc` with `node-linker=hoisted` is required for Vercel. It flattens node_modules so the Prisma engine binary at `node_modules/.prisma/client/` is traced properly. Without it, the engine is buried in `node_modules/.pnpm/@prisma+client@.../node_modules/.prisma/client/` and Vercel can't find it.
+8. **Client components need org slug from server**: Don't extract org slug from `window.location.pathname` in client components — the root dashboard path `/` yields `undefined`. Always pass `orgSlug` as a prop from the server component which has it from the session/JWT. Otherwise the fallback "demo-org" won't match production orgs (which are generated as `{email-prefix}-workspace` during registration).
 
 ### Railway deployment (worker)
 

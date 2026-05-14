@@ -14,7 +14,7 @@
 | Phase 3: Workflow Engine | ✅ Done | 100% |
 | Phase 4: AI Layer | ✅ Done | 100% |
 | Phase 5: Internal Ops | ✅ Done | 100% |
-| Phase 6: Deployment | 🔄 In Progress | 80% |
+| Phase 6: Deployment | 🔄 In Progress | 85% |
 
 **Total source code:** ~6,300 lines across ~125 files
 **API endpoints:** 30 total + SSE stream
@@ -363,7 +363,7 @@ packages/db (Prisma 6 + PostgreSQL)
 ## Phase 6 — Deployment 🔄
 
 > Started: 2026-05-13  
-> Updated: 2026-05-14
+> Updated: 2026-05-14 (worker health fix)
 
 ### Deployment targets
 
@@ -386,6 +386,7 @@ packages/db (Prisma 6 + PostgreSQL)
 | **Postinstall generate** | `package.json` | Prisma Client with workspace schema |
 | **`vercel.json` build config** | `apps/web/vercel.json` | `prisma generate` → `next build` |
 | **Split bcrypt from auth** | `lib/password.ts`, `lib/auth.ts` | bcryptjs (Node.js) separated from Edge JWT code |
+| **Pass org slug as prop** | `worker-status-card.tsx`, `page.tsx` | Client components must receive orgSlug from server, NOT extract from URL (root `/` path yields `undefined` → fallback `demo-org` doesn't exist in production) |
 
 ### Bugs fixed
 
@@ -401,6 +402,7 @@ packages/db (Prisma 6 + PostgreSQL)
 | 8 | Railway healthcheck fails (no HTTP) | Worker had no HTTP server | Added healthcheck HTTP server in worker index.ts |
 | 9 | Worker health API 404 on Vercel | Route read local `.worker-health.json` file | Changed to DB-based health queries |
 | 10 | Worker health frontend crash | Simplified debug route didn't return expected `{worker, queue}` format | Restored full DB-based response |
+| 11 | Worker health API STILL 404 after DB fix | `WorkerStatusCard` extracted org slug from `window.location.pathname` — at root path `/` this always fell back to `"demo-org"`, which doesn't exist in production (users have custom slugs like `alice-workspace` from registration) | Pass `orgSlug` as prop from server component; add `force-dynamic` + try-catch in route handler |
 
 ### Railway deployment fixes (ongoing)
 
@@ -426,11 +428,13 @@ packages/db (Prisma 6 + PostgreSQL)
 | 3 | `REDIS_URL` not set on Vercel (needed for trigger/retry) | ⬜ |
 | 4 | Page navigation feels slow (1-2s) | 🔧 No `loading.tsx` — could add skeleton states |
 | 5 | No tests | ⬜ Zero test files |
+| 6 | `useWorkflowRun.ts` hooks hardcodes `demo-org` | ⬜ Unused file, but should be fixed if ever used |
 
 ### Next steps
 
-1. Fix BullMQ `client[commandNameWithVersion]` error on Railway
-2. End-to-end verification (login → create workflow → trigger run → SSE streaming)
-3. Seed demo data on production DB
-4. Add `REDIS_URL` to Vercel env vars
-5. Add `loading.tsx` skeleton states
+1. **Deploy worker health fix**: `npx vercel --prod --cwd apps/web` (user will push via GitHub Desktop first)
+2. Fix BullMQ `client[commandNameWithVersion]` error on Railway
+3. End-to-end verification (login → create workflow → trigger run → SSE streaming)
+4. Seed demo data on production DB
+5. Add `REDIS_URL` to Vercel env vars
+6. Add `loading.tsx` skeleton states
