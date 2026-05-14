@@ -18,6 +18,7 @@
     "lint": "turbo run lint",
     "seed": "pnpm --filter @opsflow/db seed",
     "seed-members": "pnpm tsx packages/db/seed-members.ts",
+    "seed-prod": "pnpm tsx packages/db/seed-production.ts",
     "postinstall": "pnpm --filter @opsflow/db generate",
     "start": "npx tsx apps/worker/src/index.ts"
   },
