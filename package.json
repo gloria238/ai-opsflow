@@ -5,7 +5,8 @@
       "prisma",
       "@prisma/engines",
       "msgpackr-extract",
-      "esbuild"
+      "esbuild",
+      "@railway/cli"
     ]
   },
   "name": "opsflow-ai",
@@ -24,6 +25,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.2",
   "devDependencies": {
+    "@railway/cli": "^4.58.0",
     "turbo": "^2.9.12"
   }
 }

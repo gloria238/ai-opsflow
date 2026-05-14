@@ -74,7 +74,8 @@ export async function PATCH(request: Request, { params }: { params: { slug: stri
         action: "lead.updated",
         targetType: "Lead",
         targetId: params.id,
-        metadata: changes,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: changes as any,
       },
     });
 

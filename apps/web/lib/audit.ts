@@ -1,4 +1,5 @@
 import { prisma } from "@opsflow/db";
+import type { Prisma } from "@prisma/client";
 
 export async function logAudit(params: {
   organizationId: string;
@@ -9,5 +10,7 @@ export async function logAudit(params: {
   targetId?: string;
   metadata?: Record<string, unknown>;
 }) {
-  await prisma.auditLog.create({ data: params });
+  await prisma.auditLog.create({
+    data: params as Prisma.AuditLogCreateInput,
+  });
 }

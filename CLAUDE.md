@@ -62,7 +62,7 @@ packages/
 - **API layer**: 30+ Route Handlers with session + RBAC permission checks. JSON logging on auth/AI routes.
 - **Worker**: BullMQ Worker consuming `workflow-runs` queue. DAG execution via Kahn's topological sort. Condition branching, delay nodes (BullMQ delay), retry with backoff.
 - **AI**: DeepSeek API client. 4 AI endpoints: suggest-nodes, generate-workflow, score-lead, analyze-run. Feature flags via `lib/feature-flags.ts`.
-- **DB**: PrismaClient singleton cached on `globalThis`. `serverExternalPackages: ["@prisma/client"]` in next.config for Vercel.
+- **DB**: PrismaClient singleton cached on `globalThis`. `experimental.serverComponentsExternalPackages: ["@prisma/client"]` in next.config for Vercel.
 
 ### Key files
 
@@ -70,12 +70,13 @@ packages/
 apps/web/lib/auth.ts              — JWT sign/verify (jose), Edge-compatible
 apps/web/lib/password.ts          — bcrypt hash/verify, Node.js only (not Edge)
 apps/web/lib/session.ts           — Server-side session from JWT cookie
+apps/web/lib/audit.ts              — Audit log write helper (used in all mutation endpoints)
 apps/web/lib/permissions.ts       — RBAC roles + permission matrix
 apps/web/lib/ai.ts                — DeepSeek API client
 apps/web/lib/feature-flags.ts     — Env-based feature toggles
 apps/web/lib/logger.ts            — Structured JSON logging
 apps/web/middleware.ts            — JWT guard + rate limiting (100 req/min per IP)
-apps/web/next.config.js           — transpilePackages: [worker], serverExternalPackages: [@prisma/client]
+apps/web/next.config.js           — transpilePackages: [worker], experimental.serverComponentsExternalPackages: [@prisma/client]
 apps/web/vercel.json              — Vercel build config (prisma generate → next build)
 apps/worker/src/queue.ts          — Lazy Redis connection + BullMQ Queue (Proxy pattern)
 apps/worker/src/index.ts          — Worker: DAG execution, retry, condition eval, delay
@@ -84,19 +85,33 @@ packages/db/index.ts              — PrismaClient singleton export
 packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 ```
 
-### State of the project (2026-05-13)
+### State of the project (2026-05-13, updated evening)
 
 - **All 5 phases complete**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops
-- **Phase 6 (Deployment) in progress**: Web app deployed on Vercel with remaining bugs
-- **~6,100 lines** across 119 files. 30 API routes + SSE streaming endpoint.
-- Worker not yet deployed to Railway. GitHub push blocked by GFW — deploy via `npx vercel`.
+- **Phase 6 (Deployment) in progress**: Web app deployed and working on Vercel. Worker config ready for Railway.
+- **~6,300 lines** across ~125 files. 30 API routes + SSE streaming endpoint.
+- Web app: ✅ Vercel (login works, pages functional). Worker: ⬜ Railway (railway.toml ready, CLI binary blocked by GFW).
+- GitHub push blocked by GFW — deploy via `npx vercel` / `npx railway up`.
 - No tests yet (zero test files).
+- `lib/audit.ts` — Audit log recording added to 7 mutation endpoints (lead CRUD, workflow CRUD, org update, member CRUD).
+- `.npmrc` with `node-linker=hoisted` — Required for Vercel deployment, flattens pnpm node_modules so Prisma engine binary is traced correctly.
 
 ### Vercel deployment gotchas (lessons learned)
 
-1. **Prisma engine binary**: Set `experimental.serverComponentsExternalPackages: ["@prisma/client"]` in next.config so Next.js treats Prisma as external. Also add `binaryTargets = ["rhel-openssl-3.0.x"]` in schema.prisma + `outputFileTracingIncludes` to trace `.so.node` files from pnpm virtual store.
-2. **Prisma generate before build**: `vercel.json` buildCommand = `prisma generate && next build`
+1. **Prisma engine binary**: Three changes needed: (a) Add `binaryTargets = ["native", "rhel-openssl-3.0.x"]` to schema.prisma generator. (b) Set `experimental.serverComponentsExternalPackages: ["@prisma/client"]` in next.config.js (NOT top-level `serverExternalPackages` — Next.js 14.2 only supports it under `experimental`). (c) Add `.npmrc` with `node-linker=hoisted` — pnpm virtual store deep paths prevent Vercel's file tracer from finding `.so.node` files.
+2. **Prisma generate before build**: `vercel.json` buildCommand = `pnpm --filter @opsflow/db generate && pnpm --filter @opsflow/web build`
 3. **No dotenv**: Vercel provides env vars natively. Don't use dotenv in next.config.js.
 4. **Workspace imports**: Dynamic `import()` for packages that need env vars not set on Vercel (worker/queue needs REDIS_URL)
 5. **Edge vs Node**: Middleware runs Edge Runtime — don't import bcryptjs there. Split password functions into separate file.
 6. **Postinstall**: Root `postinstall` runs `prisma generate`. The `@prisma/client` postinstall warning about "schema not found" is harmless.
+7. **pnpm hoisted mode**: `.npmrc` with `node-linker=hoisted` is required for Vercel. It flattens node_modules so the Prisma engine binary at `node_modules/.prisma/client/` is traced properly. Without it, the engine is buried in `node_modules/.pnpm/@prisma+client@.../node_modules/.prisma/client/` and Vercel can't find it.
+
+### Railway deployment (worker)
+
+Worker is a standalone Node.js process (BullMQ consumer) that executes workflow runs from Upstash Redis queue. Without it, workflow runs stay in `queued` status forever.
+
+**Config**: `railway.toml` at project root — uses `nixpacks` builder, runs `prisma generate` before starting.
+
+**Env vars needed**: `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`
+
+**Deploy command**: `npx railway up` (requires `@railway/cli` — postinstall downloads binary from GitHub, GFW may block it).
