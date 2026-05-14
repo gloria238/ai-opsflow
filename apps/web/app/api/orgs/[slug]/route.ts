@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
+import { signToken } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
@@ -66,5 +67,26 @@ export async function PATCH(request: Request, { params }: { params: { slug: stri
     metadata: data,
   });
 
-  return NextResponse.json({ id: updated.id, name: updated.name, slug: updated.slug });
+  const response = NextResponse.json({ id: updated.id, name: updated.name, slug: updated.slug });
+
+  // Re-issue JWT if slug changed, otherwise subsequent API calls use stale slug → 404
+  if (data.slug && data.slug !== params.slug) {
+    const token = await signToken({
+      userId: session.userId,
+      email: session.email,
+      name: session.name,
+      orgId: session.orgId,
+      orgSlug: data.slug,
+      role: session.role,
+    });
+    response.cookies.set("session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+  }
+
+  return response;
 }
