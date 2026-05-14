@@ -17,7 +17,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "seed": "pnpm --filter @opsflow/db seed",
-    "postinstall": "pnpm --filter @opsflow/db generate"
+    "postinstall": "pnpm --filter @opsflow/db generate",
+    "start": "npx tsx apps/worker/src/index.ts"
   },
   "keywords": [],
   "author": "",
