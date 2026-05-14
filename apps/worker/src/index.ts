@@ -383,6 +383,7 @@ startHealthServer();
 async function shutdown() {
   console.log("Shutting down worker...");
   await worker.close();
+  await workflowQueue.close();
   await connection.quit();
   process.exit(0);
 }
