@@ -78,23 +78,25 @@ apps/web/lib/logger.ts            — Structured JSON logging
 apps/web/middleware.ts            — JWT guard + rate limiting (100 req/min per IP)
 apps/web/next.config.js           — transpilePackages: [worker], experimental.serverComponentsExternalPackages: [@prisma/client]
 apps/web/vercel.json              — Vercel build config (prisma generate → next build)
-apps/worker/src/queue.ts          — Lazy Redis connection + BullMQ Queue (Proxy pattern)
-apps/worker/src/index.ts          — Worker: DAG execution, retry, condition eval, delay
+apps/worker/src/queue.ts          — Direct Redis connection + BullMQ Queue (no Proxy — caused BullMQ method resolution issues)
+apps/worker/src/index.ts          — Worker: DAG execution, retry, condition eval, delay, HTTP healthcheck server
 packages/db/prisma/schema.prisma  — All 10 models with @opsflow schema
 packages/db/index.ts              — PrismaClient singleton export
 packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 ```
 
-### State of the project (2026-05-13, updated evening)
+### State of the project (2026-05-14)
 
 - **All 5 phases complete**: Auth/Org/RBAC, CRM Core, Workflow Engine, AI Layer, Internal Ops
-- **Phase 6 (Deployment) in progress**: Web app deployed and working on Vercel. Worker config ready for Railway.
+- **Phase 6 (Deployment) in progress (80%)**: Web app deployed on Vercel. Worker deployed on Railway but BullMQ connection issue.
 - **~6,300 lines** across ~125 files. 30 API routes + SSE streaming endpoint.
-- Web app: ✅ Vercel (login works, pages functional). Worker: ⬜ Railway (railway.toml ready, CLI binary blocked by GFW).
-- GitHub push blocked by GFW — deploy via `npx vercel` / `npx railway up`.
+- Web app: ✅ Vercel (login works, pages functional, worker health API uses DB queries).
+- Worker: 🔧 Railway (deploys, healthcheck passes, but BullMQ throws `client[commandNameWithVersion]` error at runtime).
+- GitHub push via Desktop works. `npx vercel --prod --cwd apps/web` for manual Vercel deploy.
 - No tests yet (zero test files).
-- `lib/audit.ts` — Audit log recording added to 7 mutation endpoints (lead CRUD, workflow CRUD, org update, member CRUD).
-- `.npmrc` with `node-linker=hoisted` — Required for Vercel deployment, flattens pnpm node_modules so Prisma engine binary is traced correctly.
+- `lib/audit.ts` — Fixed `AuditLogCreateInput` → `AuditLogUncheckedCreateInput`. Audit log added to 10 mutation endpoints.
+- `.npmrc` with `node-linker=hoisted` — Required for Vercel deployment.
+- `@railway/cli` removed — postinstall GitHub download blocked by GFW on Railway builds.
 
 ### Vercel deployment gotchas (lessons learned)
 
@@ -110,8 +112,15 @@ packages/db/prisma.config.ts      — Prisma 6 config (schema path)
 
 Worker is a standalone Node.js process (BullMQ consumer) that executes workflow runs from Upstash Redis queue. Without it, workflow runs stay in `queued` status forever.
 
-**Config**: `railway.toml` at project root — uses `nixpacks` builder, runs `prisma generate` before starting.
+**Config**: `railway.toml` at project root — `nixpacks` builder. Root `package.json` has `"start"` script for nixpacks auto-detection.
+
+**Build command**: `pnpm install --frozen-lockfile && pnpm --filter @opsflow/db generate`  
+**Start command**: `npx tsx apps/worker/src/index.ts` (from root)
 
 **Env vars needed**: `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`
 
-**Deploy command**: `npx railway up` (requires `@railway/cli` — postinstall downloads binary from GitHub, GFW may block it).
+**GitHub-linked deployment**: Push to `main` triggers auto-deploy. Railway dashboard can override start command — must ensure it matches railway.toml.
+
+**Current blocker**: BullMQ Worker throws `client[commandNameWithVersion] is not a function` — ioredis/BullMQ internal method resolution issue. Worker HTTP healthcheck passes, but job processing fails. Root cause under investigation.
+
+**Removed**: `@railway/cli` from devDependencies — its postinstall downloads from GitHub, which is blocked by GFW on Railway's build environment.

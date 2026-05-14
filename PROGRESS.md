@@ -1,6 +1,6 @@
 # OpsFlow AI — Progress Report
 
-> Last updated: 2026-05-13 (evening)
+> Last updated: 2026-05-14
 > Project: Multi-tenant AI Workflow CRM
 
 ---
@@ -14,9 +14,9 @@
 | Phase 3: Workflow Engine | ✅ Done | 100% |
 | Phase 4: AI Layer | ✅ Done | 100% |
 | Phase 5: Internal Ops | ✅ Done | 100% |
-| Phase 6: Deployment | 🔄 In Progress | 60% |
+| Phase 6: Deployment | 🔄 In Progress | 80% |
 
-**Total source code:** ~6,100 lines across 119 files
+**Total source code:** ~6,300 lines across ~125 files
 **API endpoints:** 30 total + SSE stream
 **Infrastructure:** TanStack Query, SSE, Rate Limiting, Feature Flags, Structured Logging
 **Database tables:** 10 models + 1 enum
@@ -290,12 +290,12 @@ packages/db (Prisma 6 + PostgreSQL)
 ## Known Issues / TODOs
 
 1. **Seed user can now login** — `alice@example.com` with strong random password (set during Phase 5).
-2. **BullMQ integrated** — Worker consumes queue from Upstash Redis with 5x concurrency. Trigger is now `queue.add()` instead of DB polling. Delay nodes use BullMQ's built-in `delay` option.
+2. **BullMQ integrated** — Worker consumes queue from Upstash Redis with 5x concurrency. Trigger is `queue.add()`. Delay nodes use BullMQ's built-in `delay` option.
 3. **`packages/core` and `packages/ui`** are empty shells for future work.
 4. **No tests** — zero test files across the entire project.
 5. **Webhook/cron triggers** not implemented — only manual "Run Now" trigger available.
-6. **GitHub push blocked** — GFW prevents HTTPS/SSH connection to github.com. Current workaround: deploy via Vercel CLI from local files.
-7. **Worker not yet deployed** — currently runs locally only; needs Railway deployment for production.
+6. **GitHub push** — Works via GitHub Desktop (GFW blocks CLI `git push`). Vercel CLI for manual deploy if needed.
+7. **BullMQ runtime error** — Worker deploys on Railway but throws `client[commandNameWithVersion] is not a function`. Root cause under investigation (likely BullMQ/ioredis internal method resolution issue).
 
 ---
 
@@ -362,91 +362,75 @@ packages/db (Prisma 6 + PostgreSQL)
 
 ## Phase 6 — Deployment 🔄
 
-> Started: 2026-05-13
+> Started: 2026-05-13  
+> Updated: 2026-05-14
 
 ### Deployment targets
 
 | Component | Platform | Status |
 |-----------|----------|--------|
 | Web App (Next.js) | Vercel | ✅ Deployed & working |
-| Worker (BullMQ) | Railway | ⬜ Config ready, CLI blocked by GFW |
+| Worker (BullMQ) | Railway | 🔧 Deployed, BullMQ runtime error |
 | Database (PostgreSQL) | Supabase | ✅ Already hosted |
 | Redis | Upstash | ✅ Already hosted |
 
-**Production URL:** `opsflow-o2n8o0uem-gloria238s-projects.vercel.app`
+**Production URL:** `opsflow-ai-omega.vercel.app`
 
-### Vercel deployment fixes applied (final working config)
+### Vercel deployment fixes (lessons learned)
 
 | Fix | File | Reason |
 |-----|------|--------|
-| **`.npmrc` with `node-linker=hoisted`** | `.npmrc` (new) | **KEY FIX**: pnpm virtual store deep paths prevented Vercel from tracing Prisma engine `.so.node` files. Flattened `node_modules` fixes this. |
-| **`binaryTargets` in schema** | `packages/db/prisma/schema.prisma` | Explicit `rhel-openssl-3.0.x` + `native` targets ensure correct engine binary on Vercel and local dev. |
-| **`experimental.serverComponentsExternalPackages`** | `apps/web/next.config.js` | Correct name for Next.js 14.2 (NOT top-level `serverExternalPackages`). |
-| TypeScript null narrowing | `apps/web/.../runs/stream/route.ts` | `membership` captured before ReadableStream closure |
-| Postinstall generate | `package.json` | Prisma Client must be generated with workspace schema |
-| esbuild in allowlist | `package.json` | pnpm was ignoring esbuild postinstall, breaking Next.js |
-| Turbo env passthrough | `turbo.json` | Added `globalEnv` for DATABASE_URL, JWT_SECRET, DEEPSEEK_API_KEY, REDIS_URL |
-| Vercel build config | `apps/web/vercel.json` | Monorepo-aware build command: prisma generate → next build |
-| Remove dotenv from next.config | `apps/web/next.config.js` | Caused `url.parse()` deprecation warning on Vercel |
-| Lazy Queue init | `apps/worker/src/queue.ts` | REDIS_URL check moved from top-level to lazy (Proxy pattern) |
-| Dynamic import for queue | `retry/route.ts`, `trigger/route.ts` | Worker queue imported only when endpoint is called |
-| Split bcrypt from auth lib | `lib/password.ts` (new), `lib/auth.ts` | bcryptjs (Node.js API) separated from Edge-compatible JWT code |
+| **`.npmrc` with `node-linker=hoisted`** | `.npmrc` | **KEY FIX**: pnpm virtual store deep paths prevented Vercel from tracing Prisma engine `.so.node` files |
+| **`binaryTargets`** | `packages/db/prisma/schema.prisma` | `rhel-openssl-3.0.x` + `native` targets for Vercel + local |
+| **`experimental.serverComponentsExternalPackages`** | `apps/web/next.config.js` | Next.js 14.2 correct key (NOT `serverExternalPackages`) |
+| **Postinstall generate** | `package.json` | Prisma Client with workspace schema |
+| **`vercel.json` build config** | `apps/web/vercel.json` | `prisma generate` → `next build` |
+| **Split bcrypt from auth** | `lib/password.ts`, `lib/auth.ts` | bcryptjs (Node.js) separated from Edge JWT code |
 
-### Bugs fixed today (2026-05-13 evening)
+### Bugs fixed
 
 | # | Bug | Root cause | Fix |
 |---|-----|------------|-----|
 | 1 | Login returns 500 | Prisma engine not found on Vercel | `.npmrc` + `binaryTargets` + `serverComponentsExternalPackages` |
-| 2 | New leads saved with NULL fields | `onMutate` cleared form fields BEFORE the mutation executed | Moved cleanup to `onSuccess` |
-| 3 | Settings Save shows "No valid fields" | Save button enabled with no changes — sent empty body | Button disabled when no fields changed |
+| 2 | New leads saved with NULL fields | `onMutate` cleared form fields before mutation executed | Moved cleanup to `onSuccess` |
+| 3 | Settings Save "No valid fields" | Save enabled with no changes — empty body sent | Disable button when no fields changed |
 | 4 | Dialog Select dropdown clipped | `overflow-hidden` on Dialog content | Changed to `overflow-visible` |
+| 5 | `audit.ts` TS type error | `AuditLogCreateInput` requires relation, code uses scalar `organizationId` | Changed to `AuditLogUncheckedCreateInput` |
+| 6 | Railway build fails (CLI postinstall) | `@railway/cli` postinstall downloads from GitHub, blocked by GFW | Removed `@railway/cli` from dependencies |
+| 7 | Railway start command wrong path | `cd apps/worker &&` not effective in nixpacks | Changed to full path: `npx tsx apps/worker/src/index.ts` |
+| 8 | Railway healthcheck fails (no HTTP) | Worker had no HTTP server | Added healthcheck HTTP server in worker index.ts |
+| 9 | Worker health API 404 on Vercel | Route read local `.worker-health.json` file | Changed to DB-based health queries |
+| 10 | Worker health frontend crash | Simplified debug route didn't return expected `{worker, queue}` format | Restored full DB-based response |
 
-### Audit log implementation (NEW)
+### Railway deployment fixes (ongoing)
 
-Created `lib/audit.ts` helper and added audit logging to 7 mutation endpoints:
+| Fix | File | Description |
+|-----|------|-------------|
+| **Root `start` script** | `package.json` | `"start": "npx tsx apps/worker/src/index.ts"` for nixpacks auto-detection |
+| **HTTP healthcheck server** | `apps/worker/src/index.ts` | Static `node:http` import, binds `0.0.0.0:PORT`, responds to Railway probes |
+| **Queue simplification** | `apps/worker/src/queue.ts` | Replaced Proxy-based lazy connection with direct `new Redis()` + `new Queue()` |
+| **Release config** | `railway.toml` | Builder: nixpacks, Build: `pnpm install && prisma generate`, Start: full path |
 
-| Endpoint | Action recorded |
-|----------|----------------|
-| `POST /leads` | `lead.created` |
-| `PATCH /leads/[id]` | `lead.updated` |
-| `DELETE /leads/[id]` | `lead.deleted` |
-| `POST /workflows` | `workflow.created` |
-| `PUT /workflows/[id]` | `workflow.updated` |
-| `DELETE /workflows/[id]` | `workflow.deleted` |
-| `PATCH /orgs/[slug]` | `organization.updated` |
-| `POST /members` | `member.added` |
-| `PATCH /members/[id]` | `member.updated` |
-| `DELETE /members/[id]` | `member.removed` |
+### Current blocker
 
-> ⚠️ Type error: `lib/audit.ts` cast to `Prisma.AuditLogCreateInput` doesn't satisfy TS strict mode. Need `as any` workaround.
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | BullMQ `client[commandNameWithVersion] is not a function` | 🔧 Worker deploys, healthcheck passes, but job processing fails. Likely BullMQ/ioredis internal method resolution (not version-dependent — persists across ioredis 5.3.2 and 5.10.1) |
 
 ### Remaining issues
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | `lib/audit.ts` TS type error (Prisma JSON column types) | ✅ Fixed — use `AuditLogUncheckedCreateInput` |
-| 2 | Worker not deployed to Railway | ⬜ `railway.toml` ready, CLI binary blocked by GFW |
-| 3 | Demo data not seeded on production DB | ⬜ Need to run seed against production DB |
-| 4 | `REDIS_URL` not set on Vercel (needed for trigger/retry) | ⬜ |
-| 5 | Page navigation feels slow (1-2s) | 🔧 No `loading.tsx` — could add skeleton states |
-
-### Railway deployment prep
-
-- **Config**: `railway.toml` at project root — `nixpacks` builder, build = `pnpm install + prisma generate`, start = `tsx src/index.ts`
-- **CLI**: `@railway/cli` v4.58.0 installed as dev dependency — postinstall downloads binary from GitHub (blocked by GFW)
-- **Env vars needed**: `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`
-
-### Blockers
-
-- **GitHub push** — Connection reset (GFW). Deploying via Vercel CLI (`npx vercel`) from local files.
-- **Railway CLI download** — GitHub releases blocked by GFW. Need VPN/proxy to download CLI binary.
-- **Git repo** — Initialized locally with commits, not yet pushed to GitHub remote.
+| 1 | BullMQ runtime error on Railway | 🔧 Under investigation |
+| 2 | Demo data not seeded on production DB | ⬜ |
+| 3 | `REDIS_URL` not set on Vercel (needed for trigger/retry) | ⬜ |
+| 4 | Page navigation feels slow (1-2s) | 🔧 No `loading.tsx` — could add skeleton states |
+| 5 | No tests | ⬜ Zero test files |
 
 ### Next steps
 
-1. Fix `lib/audit.ts` TS type error
-2. Seed demo data on production DB
-3. Add `REDIS_URL` to Vercel env vars (required for workflow trigger/retry)
-4. Deploy worker to Railway (need VPN for CLI binary download)
-5. End-to-end verification (login → create workflow → trigger run → SSE streaming)
-6. Add `loading.tsx` skeleton states for better page navigation UX
+1. Fix BullMQ `client[commandNameWithVersion]` error on Railway
+2. End-to-end verification (login → create workflow → trigger run → SSE streaming)
+3. Seed demo data on production DB
+4. Add `REDIS_URL` to Vercel env vars
+5. Add `loading.tsx` skeleton states
