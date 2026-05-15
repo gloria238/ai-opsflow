@@ -92,7 +92,7 @@ export async function DELETE(request: Request, { params }: { params: { slug: str
   const lead = await getScopedLead(session.userId, params.slug, params.id);
   if (!lead) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  try { requirePermission(lead._membershipRole, "manage_leads"); }
+  try { requirePermission(lead._membershipRole, "delete_leads"); }
   catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
   const leadData = await prisma.lead.findUniqueOrThrow({ where: { id: params.id } });

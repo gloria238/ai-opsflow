@@ -292,50 +292,65 @@ async function main() {
 
   // ── Workflow templates ─────────────────────────────────────────────
 
-  const existingWf = await prisma.workflow.count({ where: { organizationId: org.id } });
-  if (existingWf > 0) {
-    console.log(`Org already has ${existingWf} workflow(s), skipping template seed.\n`);
-  } else {
-    for (const tmpl of TEMPLATES) {
-      const wf = await prisma.workflow.create({
-        data: {
-          organizationId: org.id,
-          name: tmpl.name,
-          description: tmpl.description,
-          versions: { create: [{ version: 1 }] },
-        },
-        include: { versions: true },
-      });
-      const versionId = wf.versions[0].id;
-      for (const n of tmpl.nodes) {
-        await prisma.workflowNode.create({ data: { versionId, ...n } });
-      }
-      for (const e of tmpl.edges) {
-        await prisma.workflowEdge.create({ data: { versionId, ...e } });
-      }
-      console.log(`Created "${tmpl.name}" (${tmpl.nodes.length} nodes, ${tmpl.edges.length} edges)`);
+  const templateNames = TEMPLATES.map((t) => t.name);
+  const existingNames = await prisma.workflow.findMany({
+    where: { organizationId: org.id, name: { in: templateNames } },
+    select: { name: true },
+  });
+  const existingSet = new Set(existingNames.map((w) => w.name));
+
+  for (const tmpl of TEMPLATES) {
+    if (existingSet.has(tmpl.name)) {
+      console.log(`"${tmpl.name}" already exists, skipping.`);
+      continue;
     }
-    console.log("");
+    const wf = await prisma.workflow.create({
+      data: {
+        organizationId: org.id,
+        name: tmpl.name,
+        description: tmpl.description,
+        versions: { create: [{ version: 1 }] },
+      },
+      include: { versions: true },
+    });
+    const versionId = wf.versions[0].id;
+    for (const n of tmpl.nodes) {
+      await prisma.workflowNode.create({ data: { versionId, ...n } });
+    }
+    for (const e of tmpl.edges) {
+      await prisma.workflowEdge.create({ data: { versionId, ...e } });
+    }
+    console.log(`Created "${tmpl.name}" (${tmpl.nodes.length} nodes, ${tmpl.edges.length} edges)`);
   }
+  console.log("");
 
   // ── Demo leads ──────────────────────────────────────────────────────
 
-  const existingLeads = await prisma.lead.count({ where: { organizationId: org.id } });
-  if (existingLeads > 0) {
-    console.log(`Org already has ${existingLeads} lead(s), skipping lead seed.`);
-  } else {
-    const leads = [
-      { name: "Alice Johnson", email: "alice@company.com", stage: "qualified" },
-      { name: "Bob Smith", email: "bob@gmail.com", stage: "new" },
-      { name: "Carol Williams", email: "carol@startup.io", stage: "proposal" },
-      { name: "Dave Brown", email: "dave@enterprise.com", stage: "negotiation" },
-      { name: "Eve Davis", email: "eve@corp.net", stage: "new" },
-    ];
-    for (const l of leads) {
-      await prisma.lead.create({ data: { organizationId: org.id, ...l } });
+  const leads = [
+    { name: "Alice Johnson", email: "alice@company.com", stage: "qualified" },
+    { name: "Bob Smith", email: "bob@gmail.com", stage: "new" },
+    { name: "Carol Williams", email: "carol@startup.io", stage: "proposal" },
+    { name: "Dave Brown", email: "dave@enterprise.com", stage: "negotiation" },
+    { name: "Eve Davis", email: "eve@corp.net", stage: "new" },
+  ];
+
+  const leadEmails = leads.map((l) => l.email);
+  const existingLeadEmails = await prisma.lead.findMany({
+    where: { organizationId: org.id, email: { in: leadEmails } },
+    select: { email: true },
+  });
+  const existingEmailSet = new Set(existingLeadEmails.map((l) => l.email));
+
+  let leadsCreated = 0;
+  for (const l of leads) {
+    if (existingEmailSet.has(l.email)) {
+      console.log(`Lead "${l.name}" (${l.email}) already exists, skipping.`);
+      continue;
     }
-    console.log(`Created ${leads.length} demo leads`);
+    await prisma.lead.create({ data: { organizationId: org.id, ...l } });
+    leadsCreated++;
   }
+  console.log(`Created ${leadsCreated} new lead(s)`);
 
   console.log("\nDone. Templates ready at /workflows");
 }

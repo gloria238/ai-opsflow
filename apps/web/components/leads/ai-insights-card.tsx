@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { AIScoreResponse } from "@/components/workflow/types";
 
 interface Props {
@@ -12,27 +12,33 @@ export function AIInsightsCard({ leadId, orgSlug }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchScore = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/orgs/${orgSlug}/ai/score-lead`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Scoring failed");
+      }
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to analyze");
+    } finally {
+      setLoading(false);
+    }
+  }, [leadId, orgSlug]);
+
   useEffect(() => {
     let cancelled = false;
-    async function fetchScore() {
-      try {
-        const res = await fetch(`/api/orgs/${orgSlug}/ai/score-lead`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ leadId }),
-        });
-        if (!res.ok) throw new Error("Scoring failed");
-        const data = await res.json();
-        if (!cancelled) setResult(data);
-      } catch {
-        if (!cancelled) setError("Unable to analyze");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    fetchScore();
+    fetchScore().then(() => { if (cancelled) return; });
     return () => { cancelled = true; };
-  }, [leadId, orgSlug]);
+  }, [fetchScore]);
 
   const scoreColor = result?.label === "hot"
     ? "bg-red-500" : result?.label === "warm"
@@ -44,11 +50,21 @@ export function AIInsightsCard({ leadId, orgSlug }: Props) {
 
   return (
     <div className="rounded-lg border p-4">
-      <p className="text-sm text-gray-500 mb-3">AI Insights</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-gray-500">AI Insights</p>
+        {!loading && (
+          <button onClick={fetchScore} className="text-xs text-blue-600 hover:underline">
+            Refresh
+          </button>
+        )}
+      </div>
       {loading ? (
         <p className="text-sm text-gray-400">Analyzing...</p>
       ) : error ? (
-        <p className="text-sm text-gray-400">{error}</p>
+        <div className="text-sm text-red-500 space-y-1.5">
+          <p>{error}</p>
+          <button onClick={fetchScore} className="text-xs underline hover:text-red-700">Retry</button>
+        </div>
       ) : result ? (
         <div className="space-y-3">
           <div className="flex items-center gap-3">

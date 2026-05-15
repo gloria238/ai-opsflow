@@ -23,6 +23,11 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   const { runId } = await request.json();
   if (!runId) return NextResponse.json({ error: "runId is required" }, { status: 400 });
 
+  if (!isEnabled("ai_anomaly_detection")) {
+    logWarn(getRequestContext(request), "AI anomaly detection disabled by feature flag");
+    return NextResponse.json({ error: "AI anomaly detection is disabled" }, { status: 503 });
+  }
+
   const run = await prisma.workflowRun.findFirst({
     where: {
       id: runId,
@@ -34,11 +39,6 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   });
 
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
-
-  if (!isEnabled("ai_anomaly_detection")) {
-    logWarn(getRequestContext(request), "AI anomaly detection disabled by feature flag");
-    return NextResponse.json({ error: "AI anomaly detection is disabled" }, { status: 503 });
-  }
   if (run.status !== "failed" && run.status !== "dead_letter") {
     return NextResponse.json({ error: "Run is not in a failed state" }, { status: 400 });
   }

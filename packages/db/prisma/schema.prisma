@@ -21,12 +21,15 @@ enum MembershipRole {
 }
 
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  name         String?
-  passwordHash String
-  memberships  Membership[]
-  createdAt    DateTime     @default(now())
+  id               String       @id @default(uuid())
+  email            String       @unique
+  name             String?
+  passwordHash     String
+  emailVerified    Boolean      @default(false)
+  loginToken       String?
+  loginTokenExpires DateTime?
+  memberships      Membership[]
+  createdAt        DateTime     @default(now())
   @@schema("opsflow")
 }
 

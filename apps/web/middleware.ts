@@ -1,34 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const publicPaths = ["/login", "/register"];
-const authApiPaths = ["/api/auth/login", "/api/auth/register", "/api/auth/logout"];
-
-// ── Rate limiting (in-memory, per-IP sliding window) ──────────────
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 100; // max requests per window (per IP)
-
-const rateMap = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return false;
-  }
-  entry.count++;
-  return entry.count > RATE_LIMIT_MAX;
-}
-
-// Clean up stale entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateMap) {
-    if (now > entry.resetAt) rateMap.delete(ip);
-  }
-}, 300_000);
+const authApiPaths = ["/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/auth/verify"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -38,8 +14,26 @@ export async function middleware(request: NextRequest) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       || request.headers.get("x-real-ip")
       || "127.0.0.1";
-    if (isRateLimited(ip)) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
+    const { allowed, remaining, reset } = await checkRateLimit(ip);
+
+    const response = NextResponse.next();
+    response.headers.set("X-RateLimit-Remaining", String(remaining));
+    response.headers.set("X-RateLimit-Reset", String(reset));
+
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests" }, {
+        status: 429,
+        headers: {
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(reset),
+        },
+      });
+    }
+
+    // Carry over rate limit headers on allowed responses too
+    if (pathname.startsWith("/api/auth/")) {
+      return response;
     }
   }
 

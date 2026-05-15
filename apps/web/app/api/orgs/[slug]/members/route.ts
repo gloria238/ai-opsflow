@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: { slug: string
     });
     if (!membership) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    try { requirePermission(membership.role, "manage_members"); }
+    try { requirePermission(membership.role, "view_members"); }
     catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
     const members = await prisma.membership.findMany({

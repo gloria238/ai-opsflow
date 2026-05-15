@@ -45,6 +45,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
       }>;
     }>(prompt, NODE_SUGGESTION_SYSTEM, { temperature: 0.5 });
 
+    const rawCount = (result.suggestions || []).length;
     const suggestions = (result.suggestions || [])
       .filter((s) => VALID_TYPES.includes(s.type))
       .map((s) => ({
@@ -55,6 +56,10 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         priority: VALID_PRIORITIES.includes(s.priority) ? s.priority : "medium",
       }))
       .slice(0, 5);
+
+    if (rawCount > 0 && suggestions.length === 0) {
+      logWarn(getRequestContext(request), `All ${rawCount} AI suggestions filtered out due to invalid types`);
+    }
 
     return NextResponse.json({ suggestions });
   } catch (err) {

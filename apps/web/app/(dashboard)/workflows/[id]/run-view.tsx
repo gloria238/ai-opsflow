@@ -18,22 +18,33 @@ const statusVariant: Record<string, "default" | "success" | "warning" | "danger"
 };
 
 export function WorkflowRunView({ workflowId, orgSlug }: Props) {
-  const { runs, error } = useRealtimeRuns(orgSlug, workflowId);
+  const { runs, error, loading } = useRealtimeRuns(orgSlug, workflowId);
   const [analysisMap, setAnalysisMap] = useState<Map<string, AIAnomalyAnalysis>>(new Map());
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
+  const [analysisErrors, setAnalysisErrors] = useState<Map<string, string>>(new Map());
 
   const analyzeRun = useCallback(async (runId: string) => {
     if (analyzingIds.has(runId)) return;
     setAnalyzingIds((prev) => new Set(prev).add(runId));
+    setAnalysisErrors((prev) => {
+      const next = new Map(prev);
+      next.delete(runId);
+      return next;
+    });
     try {
       const res = await fetch(`/api/orgs/${orgSlug}/ai/analyze-run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ runId }),
       });
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAnalysisErrors((prev) => new Map(prev).set(runId, data.error || "Analysis failed"));
+        return;
+      }
       setAnalysisMap((prev) => new Map(prev).set(runId, data));
+    } catch {
+      setAnalysisErrors((prev) => new Map(prev).set(runId, "Network error"));
     } finally {
       setAnalyzingIds((prev) => {
         const next = new Set(prev);
@@ -45,6 +56,10 @@ export function WorkflowRunView({ workflowId, orgSlug }: Props) {
 
   if (error) {
     return <div className="rounded-lg border p-8 text-center text-red-500">{error}</div>;
+  }
+
+  if (loading) {
+    return <div className="rounded-lg border p-8 text-center text-gray-400">Loading runs...</div>;
   }
 
   if (runs.length === 0) {
@@ -76,7 +91,6 @@ export function WorkflowRunView({ workflowId, orgSlug }: Props) {
             </div>
           )}
 
-          {/* AI analysis for failed/dead_letter runs */}
           {(run.status === "failed" || run.status === "dead_letter") && (
             <div className="mt-3">
               {analysisMap.has(run.id) ? (
@@ -89,6 +103,11 @@ export function WorkflowRunView({ workflowId, orgSlug }: Props) {
                     <span className="font-semibold text-red-700">Suggested fix:</span>
                     <span className="text-red-600 ml-1">{analysisMap.get(run.id)!.suggestedFix}</span>
                   </div>
+                </div>
+              ) : analysisErrors.has(run.id) ? (
+                <div className="text-xs text-red-500 bg-red-50 rounded p-2 space-y-1.5">
+                  <p>{analysisErrors.get(run.id)}</p>
+                  <button onClick={() => analyzeRun(run.id)} className="underline hover:text-red-700">Retry</button>
                 </div>
               ) : analyzingIds.has(run.id) ? (
                 <span className="text-xs text-gray-400">Analyzing...</span>

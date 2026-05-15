@@ -1,8 +1,10 @@
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import { WorkflowRunView } from "./run-view";
 import { TriggerButton } from "./trigger-button";
+import { DeleteWorkflowButton } from "./delete-button";
 
 export default async function WorkflowDetailPage({ params }: { params: { id: string } }) {
   const session = await getSession();
@@ -16,6 +18,10 @@ export default async function WorkflowDetailPage({ params }: { params: { id: str
     return <div className="text-center py-12 text-gray-500">Workflow not found</div>;
   }
 
+  const canDelete = hasPermission(session.role, "delete_workflows");
+  const canRun = hasPermission(session.role, "run_workflows");
+  const canManage = hasPermission(session.role, "manage_workflows");
+
   return (
     <div>
       <div className="mb-6 flex items-start justify-between">
@@ -24,13 +30,18 @@ export default async function WorkflowDetailPage({ params }: { params: { id: str
           {workflow.description && <p className="text-gray-500 mt-1">{workflow.description}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <TriggerButton workflowId={params.id} orgSlug={session.orgSlug} />
-          <a
-            href={`/workflows/${params.id}/builder`}
-            className="rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 transition-colors"
-          >
-            Open Builder
-          </a>
+          {canRun && <TriggerButton workflowId={params.id} orgSlug={session.orgSlug} />}
+          {canManage && (
+            <a
+              href={`/workflows/${params.id}/builder`}
+              className="rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 transition-colors"
+            >
+              Open Builder
+            </a>
+          )}
+          {canDelete && (
+            <DeleteWorkflowButton workflowId={params.id} workflowName={workflow.name} orgSlug={session.orgSlug} />
+          )}
         </div>
       </div>
       <WorkflowRunView workflowId={params.id} orgSlug={session.orgSlug} />

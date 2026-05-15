@@ -17,7 +17,7 @@ Nodes: ${JSON.stringify(nodes, null, 2)}
 Edges: ${JSON.stringify(edges, null, 2)}
 ${selectedNodeType ? `The user is configuring a "${selectedNodeType}" node.` : "Suggest general workflow improvements."}
 
-Suggest 3-5 nodes that would be valuable next additions. Consider what follows naturally from existing nodes, what common patterns are missing, and how to make the workflow more useful.`;
+Suggest 3-5 nodes that would be valuable next additions. IMPORTANT: Only use types from ["trigger", "action", "condition", "delay"]. Consider what follows naturally from existing nodes, what common patterns are missing, and how to make the workflow more useful.`;
 }
 
 export const WORKFLOW_GENERATION_SYSTEM = `You are an expert workflow automation designer. Convert natural language descriptions into structured workflow definitions.

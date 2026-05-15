@@ -21,11 +21,13 @@ interface WorkflowRun {
 export function useRealtimeRuns(orgSlug: string, workflowId: string) {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     if (!orgSlug || !workflowId) return;
 
+    setLoading(true);
     const es = new EventSource(`/api/orgs/${orgSlug}/workflows/${workflowId}/runs/stream`);
     eventSourceRef.current = es;
 
@@ -34,6 +36,7 @@ export function useRealtimeRuns(orgSlug: string, workflowId: string) {
         const data = JSON.parse(event.data) as WorkflowRun[];
         setRuns(data);
         setError("");
+        setLoading(false);
       } catch {
         // ignore parse errors
       }
@@ -41,6 +44,7 @@ export function useRealtimeRuns(orgSlug: string, workflowId: string) {
 
     es.onerror = () => {
       setError("Connection lost. Retrying...");
+      setLoading(false);
       // EventSource auto-reconnects
     };
 
@@ -50,5 +54,5 @@ export function useRealtimeRuns(orgSlug: string, workflowId: string) {
     };
   }, [orgSlug, workflowId]);
 
-  return { runs, error };
+  return { runs, error, loading };
 }

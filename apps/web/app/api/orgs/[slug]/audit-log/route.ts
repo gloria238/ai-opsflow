@@ -12,7 +12,7 @@ export async function GET(request: Request, { params }: { params: { slug: string
   });
   if (!membership) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  try { requirePermission(membership.role, "manage_org"); }
+  try { requirePermission(membership.role, "view_audit_log"); }
   catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
   const url = new URL(request.url);

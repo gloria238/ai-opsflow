@@ -3,6 +3,7 @@ import { prisma } from "@opsflow/db";
 import { verifyPassword } from "@/lib/password";
 import { signToken } from "@/lib/auth";
 import { getRequestContext, logInfo, logWarn, logError } from "@/lib/logger";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
   const ctx = getRequestContext(request);
@@ -15,13 +16,13 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      logWarn(ctx, "Login failed: user not found", { email });
+      logWarn(ctx, "Login failed: user not found", { emailHash: hashEmail(email) });
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
-      logWarn(ctx, "Login failed: wrong password", { email });
+      logWarn(ctx, "Login failed: wrong password", { emailHash: hashEmail(email) });
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
 
     response.cookies.set("session", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
@@ -61,10 +62,10 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     logError(ctx, "Login error", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json(
-      { error: "Internal server error", detail: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+function hashEmail(email: string): string {
+  return crypto.createHash("sha256").update(email).digest("hex").slice(0, 12);
 }

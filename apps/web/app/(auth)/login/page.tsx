@@ -34,7 +34,6 @@ export default function LoginPage() {
       toast.success("Signed in successfully");
       router.push("/");
       router.refresh();
-      // keep loading=true — component unmounts on navigation
     } catch {
       setError("Network error");
       setLoading(false);

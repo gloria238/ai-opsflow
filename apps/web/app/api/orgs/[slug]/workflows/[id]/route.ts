@@ -142,7 +142,7 @@ export async function DELETE(request: Request, { params }: { params: { slug: str
   });
   if (!membership) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  try { requirePermission(membership.role, "manage_workflows"); }
+  try { requirePermission(membership.role, "delete_workflows"); }
   catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
   const workflow = await prisma.workflow.findFirst({

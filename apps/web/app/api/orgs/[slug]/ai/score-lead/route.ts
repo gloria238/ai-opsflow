@@ -20,6 +20,11 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   try { requirePermission(membership.role, "view_leads"); }
   catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }); }
 
+  if (!isEnabled("ai_lead_scoring")) {
+    logWarn(getRequestContext(request), "AI lead scoring disabled by feature flag");
+    return NextResponse.json({ error: "AI lead scoring is disabled" }, { status: 503 });
+  }
+
   const body = await request.json();
 
   let lead: { name: string; email?: string | null; stage?: string | null; tags?: Record<string, unknown> | null; createdAt: string };
@@ -46,11 +51,6 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     };
   } else {
     return NextResponse.json({ error: "leadId or name required" }, { status: 400 });
-  }
-
-  if (!isEnabled("ai_lead_scoring")) {
-    logWarn(getRequestContext(request), "AI lead scoring disabled by feature flag");
-    return NextResponse.json({ error: "AI lead scoring is disabled" }, { status: 503 });
   }
 
   try {

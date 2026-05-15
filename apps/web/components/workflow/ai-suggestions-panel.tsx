@@ -14,7 +14,8 @@ export function AISuggestionsPanel({ orgSlug, nodes, edges, selectedNodeType, on
   const [suggestions, setSuggestions] = useState<AINodeSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchSuggestions = useCallback(async () => {
     setLoading(true);
@@ -35,6 +36,7 @@ export function AISuggestionsPanel({ orgSlug, nodes, edges, selectedNodeType, on
       }
       const data = await res.json();
       setSuggestions(data.suggestions || []);
+      setHasFetched(true);
       setExpanded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to get suggestions");
@@ -74,13 +76,13 @@ export function AISuggestionsPanel({ orgSlug, nodes, edges, selectedNodeType, on
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 transition-colors"
       >
-        <span>AI Suggestions</span>
         <div className="flex items-center gap-2">
-          {!expanded && suggestions.length > 0 && (
+          <span>AI Suggestions</span>
+          {suggestions.length > 0 && (
             <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 py-0.5 text-[10px]">{suggestions.length}</span>
           )}
-          <span>{expanded ? "▼" : "▶"}</span>
         </div>
+        <span>{expanded ? "▼" : "▶"}</span>
       </button>
 
       {expanded && (
@@ -90,15 +92,21 @@ export function AISuggestionsPanel({ orgSlug, nodes, edges, selectedNodeType, on
           )}
 
           {error && (
-            <div className="text-xs text-red-500 bg-red-50 rounded p-2">
-              {error}
-              <button onClick={fetchSuggestions} className="ml-2 underline">Retry</button>
+            <div className="text-xs text-red-500 bg-red-50 rounded p-2 space-y-1.5">
+              <p>{error}</p>
+              <button onClick={fetchSuggestions} className="underline hover:text-red-700">Retry</button>
             </div>
           )}
 
-          {!loading && !error && suggestions.length === 0 && (
+          {!loading && !error && suggestions.length === 0 && !hasFetched && (
             <div className="text-xs text-gray-400 text-center py-4">
               Click "Suggest" to get AI recommendations
+            </div>
+          )}
+
+          {!loading && !error && suggestions.length === 0 && hasFetched && (
+            <div className="text-xs text-gray-400 text-center py-4">
+              No suggestions available for this workflow. Try adding more nodes first.
             </div>
           )}
 
@@ -123,7 +131,7 @@ export function AISuggestionsPanel({ orgSlug, nodes, edges, selectedNodeType, on
             </div>
           ))}
 
-          {!loading && (
+          {!loading && !error && (
             <button
               onClick={fetchSuggestions}
               className="w-full rounded-lg border border-dashed border-gray-300 text-xs text-gray-500 py-2 hover:bg-gray-50 transition-colors"
