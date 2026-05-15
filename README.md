@@ -1,215 +1,564 @@
-# OpsFlow AI
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white" />
+  <img src="https://img.shields.io/badge/BullMQ-Async%20Queue-DC2626" />
+  <img src="https://img.shields.io/badge/Redis-Background%20Jobs-red?logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/Resend-Email%20Automation-7C3AED" />
+  <img src="https://img.shields.io/badge/OpenAI-AI%20Workflows-10A37F?logo=openai&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vercel-Web%20Deploy-black?logo=vercel" />
+  <img src="https://img.shields.io/badge/Railway-Worker%20Runtime-0B0D0E?logo=railway" />
+</p>
 
-### Multi-tenant workflow automation CRM for SMB sales and operations teams.
-
-Teams can: automate lead follow-ups · trigger AI-powered workflows · send automated emails · manage async job queues · monitor execution in real-time.
+<h1 align="center">
+  OpsFlow AI
+</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/React-18-blue?logo=react" alt="React">
-  <img src="https://img.shields.io/badge/TypeScript-5-blue?logo=typescript" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Prisma-6-indigo?logo=prisma" alt="Prisma">
-  <img src="https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/BullMQ-v5-red?logo=redis" alt="BullMQ">
-  <img src="https://img.shields.io/badge/Resend-Email-7B68EE" alt="Resend">
-  <img src="https://img.shields.io/badge/DeepSeek-AI-7B68EE" alt="DeepSeek AI">
-  <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel">
-  <img src="https://img.shields.io/badge/Railway-Worker-0B0D0E?logo=railway" alt="Railway">
+  Multi-tenant AI Workflow CRM for async automation, lead operations, and workflow orchestration.
 </p>
 
 ---
 
-## System Architecture
+# Overview
 
+OpsFlow AI is a production-style SaaS platform that combines:
+
+- CRM lead management
+- workflow automation
+- async job orchestration
+- AI-assisted operations
+- real-time execution monitoring
+- multi-tenant collaboration
+
+into one operational workspace.
+
+The project was designed to simulate how modern startup SaaS systems are architected and deployed in production environments.
+
+---
+
+# Live Demo
+
+## Web Application
+
+https://opsflow-ai-omega.vercel.app
+
+---
+
+# System Architecture
+
+```txt
+                        ┌─────────────────────┐
+                        │     Next.js App     │
+                        │   (Vercel Deploy)   │
+                        └──────────┬──────────┘
+                                   │
+                     Route Handlers / API Layer
+                                   │
+         ┌─────────────────────────┼─────────────────────────┐
+         │                         │                         │
+         ▼                         ▼                         ▼
+
+ ┌───────────────┐      ┌────────────────┐      ┌────────────────┐
+ │ PostgreSQL DB │      │ Redis / BullMQ │      │ AI Services     │
+ │  (Prisma ORM) │      │ Async Queue    │      │ OpenAI APIs     │
+ └──────┬────────┘      └────────┬───────┘      └────────────────┘
+        │                        │
+        │                        ▼
+        │             ┌────────────────────┐
+        │             │ Railway Worker     │
+        │             │ Workflow Executor  │
+        │             │ Retry Processing   │
+        │             └─────────┬──────────┘
+        │                       │
+        │                       ▼
+        │             ┌────────────────────┐
+        │             │ Email Integrations │
+        │             │ Resend API         │
+        │             └────────────────────┘
+        │
+        ▼
+
+┌────────────────────────────────────────────┐
+│ Real-time Workflow Monitoring / SSE Updates│
+└────────────────────────────────────────────┘
 ```
-                              ┌──────────────────────┐
-                              │     End User Browser  │
-                              │  React 18 · SSE ·     │
-                              │  TanStack Query ·     │
-                              │  React Flow Builder   │
-                              └──────────┬───────────┘
-                                         │ HTTPS
-                              ┌──────────▼───────────┐
-                              │    Vercel (Edge)      │
-                              │                        │
-                              │  ┌──────────────────┐  │
-                              │  │ Next.js 14        │  │
-                              │  │ App Router        │  │
-                              │  │ 30+ API Routes    │  │
-                              │  │ Middleware (JWT)  │  │
-                              │  │ SSE Streaming     │  │
-                              │  └────────┬─────────┘  │
-                              └───────────┼────────────┘
-                                          │
-                    ┌─────────────────────┼─────────────────────┐
-                    │                     │                     │
-          ┌─────────▼──────┐  ┌──────────▼──────┐  ┌──────────▼──────┐
-          │  Supabase       │  │  Upstash Redis   │  │  DeepSeek API    │
-          │  PostgreSQL 16  │  │  (BullMQ Queue)  │  │  (AI Inference)  │
-          │                 │  │                  │  │                  │
-          │  • 10 models    │  │  • workflow-runs │  │  • suggest-nodes │
-          │  • opsflow      │  │  • concurrency 5 │  │  • score-lead    │
-          │    schema       │  │  • native delay  │  │  • analyze-run   │
-          │  • pooled conn  │  │  • job retry     │  │  • generate-wf   │
-          └─────────────────┘  └────────┬─────────┘  └──────────────────┘
-                                        │
-                              ┌─────────▼──────────┐
-                              │   Railway (Worker)  │
-                              │                     │
-                              │  ┌───────────────┐  │
-                              │  │ BullMQ Worker  │  │
-                              │  │                │  │
-                              │  │ • DAG Execution│  │
-                              │  │ • Condition    │  │
-                              │  │   Branching    │  │
-                              │  │ • Delay Nodes  │  │
-                              │  │ • Retry Logic  │  │
-                              │  │ • Real Email   │──┼───► Resend API
-                              │  │   via Resend   │  │    (Email Delivery)
-                              │  └───────────────┘  │
-                              └─────────────────────┘
+
+---
+
+# Core Product Direction
+
+OpsFlow AI is built for:
+
+- SMB sales teams
+- SaaS startups
+- agencies
+- outbound teams
+- operations teams
+
+The platform combines:
+
+- CRM
+- workflow automation
+- AI assistance
+- queue orchestration
+- operational monitoring
+
+inside one unified system.
+
+---
+
+# What The System Supports
+
+## CRM System
+
+- Lead management
+- Pipeline stages
+- Activity timelines
+- Ownership assignment
+- Search and filtering
+- Pagination
+- Team collaboration
+
+---
+
+## Workflow Builder
+
+Inspired by systems like:
+
+- Zapier
+- n8n
+- HubSpot automation
+
+Features:
+
+- drag-and-drop workflow canvas
+- DAG-based execution
+- condition branches
+- delay nodes
+- AI nodes
+- email nodes
+- execution history
+- retries
+- failure handling
+
+---
+
+## Async Queue Architecture
+
+Background jobs are processed using:
+
+- BullMQ
+- Redis
+- Railway workers
+
+Execution states include:
+
+- queued
+- processing
+- retrying
+- completed
+- failed
+
+Supports:
+
+- retry logic
+- exponential backoff
+- failure recovery
+- queue monitoring
+
+---
+
+## Multi-Tenant SaaS Architecture
+
+Every organization operates inside isolated scoped data boundaries.
+
+Includes:
+
+- organizations
+- workspace switching
+- scoped workflows
+- scoped CRM data
+- member invites
+- team collaboration
+
+---
+
+## RBAC Permission System
+
+Roles:
+
+- Owner
+- Admin
+- Operator
+- Viewer
+
+Permissions affect:
+
+- routes
+- API access
+- workflow editing
+- CRM actions
+- dashboard visibility
+
+---
+
+## Real Email Automation
+
+Workflow email nodes support:
+
+- Resend integration
+- template rendering
+- dynamic variables
+- nested dot-notation context
+
+Examples:
+
+```txt
+{{lead.email}}
+{{lead.name}}
+{{user.email}}
+{{sales_email}}
 ```
 
-| Component | Platform | Role |
-|-----------|----------|------|
-| Web App | Vercel | Next.js 14 · Server Components · API Routes · SSE |
-| Worker | Railway | BullMQ consumer · DAG engine · Email sender |
-| Database | Supabase | PostgreSQL 16 · 10 models · `opsflow` schema |
-| Queue | Upstash Redis | Job persistence · delay scheduling · concurrency |
-| Email | Resend | Template variables · real delivery · 100/day free |
-| AI | DeepSeek | Lead scoring · workflow generation · anomaly detection |
+The worker can execute real outbound email actions through Resend.
 
 ---
 
-## What It Does
+# AI Features
 
-**CRM + Workflow Automation in one platform.** Not two glued-together products — a single system where leads flow through automated workflows.
+AI is intentionally used as an operational layer instead of an AI wrapper.
 
-### CRM
-- Lead pipeline with stages: new → qualified → proposal → negotiation → closed-won / closed-lost
-- Full-text search, stage filter, pagination, column sorting
-- Activity log per lead (notes, stage changes, assignments)
-- AI lead scoring — one click, instant hot/warm/cold label
+Current capabilities include:
 
-### Workflow Builder
-- Visual drag-and-drop canvas (React Flow)
-- 4 node types: **Trigger** · **Action** · **Condition** · **Delay**
-- AI generates workflows from natural language descriptions
-- AI suggests next nodes as you build
-- Every save creates an immutable version (audit trail)
+- AI lead scoring
+- workflow generation
+- execution analysis
+- node recommendations
+- operational suggestions
 
-### Execution Engine
-- DAG execution with topological sort (Kahn's algorithm)
-- Condition branching with dot-notation field resolution (`lead.email`, `user.name`)
-- Delay nodes via BullMQ native scheduling (no polling, no clock drift)
-- Per-node retry with linear backoff → dead-letter queue on exhaustion
-- SSE streaming — watch runs execute in real-time, node by node
-
-### Email Automation
-- **Real email delivery via Resend**
-- Template variables: `{{lead.email}}`, `{{user.name}}`, `{{sales_email}}`
-- Used in all 3 production workflow templates
-
-### Multi-Tenant SaaS
-- Organization isolation at query level
-- 4 roles × 7 permissions (owner / admin / operator / viewer)
-- Custom JWT with httpOnly cookies + middleware guard
-- Org switcher for multi-org users
-- Full audit log — every mutation tracked
+The workflow engine itself remains deterministic and reliable.
 
 ---
 
-## 3 Sellable Workflow Templates
+# Workflow Templates
 
-These ship with the product. Customers deploy them in minutes.
+## 1. Lead Qualification
 
-### 1. Lead Qualification
-`New lead → AI score → hot → notify sales / cold → nurture`
+### Target Users
 
-Sell to: **sales teams** who need automated lead triage.
+Sales teams
 
-### 2. Cold Outreach Follow-up
-`Initial email → wait 2 days → no reply? → follow-up → wait 3 days → close lead`
+### Flow
 
-Sell to: **SDR teams** running email outreach campaigns.
-
-### 3. Trial User Nurture
-`Signup → onboarding email → wait 3 days → usage reminder → wait 4 days → sales alert`
-
-Sell to: **SaaS companies** converting trial users to paid.
-
----
-
-## For Recruiters & Clients
-
-This project demonstrates production-grade SaaS engineering:
-
-- **Full-stack delivery** — 30+ API routes, 135 files, 6,400+ lines of TypeScript
-- **Queue-based architecture** — BullMQ with retry, delay, dead-letter queue
-- **Real-time streaming** — SSE push from worker to browser, not polling
-- **Multi-tenant from day one** — org isolation, RBAC, audit log, rate limiting
-- **Real integrations** — Resend email, DeepSeek AI, Supabase, Upstash
-- **Deployed** — Vercel + Railway, not localhost
-- **Product thinking** — 3 sellable templates, not just builder features
+```txt
+New Lead
+   ↓
+AI Lead Scoring
+   ↓
+Score > 70 ?
+   ├── YES → Notify Sales
+   └── NO  → Enter Nurture Flow
+```
 
 ---
 
-## Local Development
+## 2. Cold Outreach Follow-up
+
+### Target Users
+
+SDR / outbound teams
+
+### Flow
+
+```txt
+Send Email
+   ↓
+Wait 2 Days
+   ↓
+No Reply?
+   ├── YES → Send Follow-up
+   └── NO  → Mark Interested
+```
+
+---
+
+## 3. Trial User Nurture
+
+### Target Users
+
+SaaS startups
+
+### Flow
+
+```txt
+User Signup
+   ↓
+Welcome Email
+   ↓
+Wait 3 Days
+   ↓
+Usage Reminder
+   ↓
+Sales Follow-up
+```
+
+---
+
+# Internal Operations Dashboard
+
+Includes:
+
+- queue monitoring
+- failed jobs
+- retry visibility
+- worker health checks
+- execution metrics
+- audit timelines
+
+This module exists specifically to simulate real operational SaaS systems.
+
+---
+
+# Monorepo Structure
+
+```txt
+/apps
+  /web
+  /worker
+
+/packages
+  /ui
+  /shared
+  /types
+  /workflow-engine
+  /config
+
+/infrastructure
+/docs
+```
+
+---
+
+# Infrastructure Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js App Router |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| UI Components | shadcn/ui |
+| State Management | React Query + Zustand |
+| Validation | Zod |
+| Database | PostgreSQL |
+| ORM | Prisma |
+| Queue System | BullMQ |
+| Cache | Redis |
+| Worker Runtime | Railway |
+| Hosting | Vercel |
+| Email | Resend |
+| AI | OpenAI APIs |
+
+---
+
+# Engineering Focus
+
+This repository was intentionally designed to demonstrate:
+
+- async orchestration
+- distributed workers
+- operational dashboards
+- queue lifecycle management
+- retry systems
+- multi-tenant isolation
+- RBAC architecture
+- production-style frontend patterns
+- scalable SaaS structure
+- backend/frontend system ownership
+
+This is not a landing-page demo or AI wrapper.
+
+The focus is:
+
+> operational complexity
+
+---
+
+# Production Patterns Implemented
+
+## Async Workflow Execution
+
+- background queue processing
+- worker orchestration
+- delayed execution
+- retries
+- dead-letter style recovery patterns
+
+---
+
+## Frontend State Complexity
+
+- optimistic updates
+- loading states
+- retry states
+- partial failures
+- cache invalidation
+- real-time synchronization
+
+---
+
+## API Architecture
+
+- typed API contracts
+- route handlers
+- scoped org access
+- structured responses
+- modular service boundaries
+
+---
+
+## Operational Reliability
+
+- worker health checks
+- queue monitoring
+- audit logging
+- execution tracing
+- deployment separation
+
+---
+
+# Local Development
+
+## Install Dependencies
 
 ```bash
 pnpm install
-pnpm dev                # start web + worker
-pnpm seed               # fresh demo data (destructive)
-pnpm seed-prod <slug>   # safe seed into existing org
-pnpm seed-members <slug> # add test users for RBAC testing
-pnpm build              # build all packages
-```
-
-### Environment Variables
-
-```bash
-# Web (Vercel)
-DATABASE_URL=postgresql://...
-DIRECT_URL=postgresql://...
-JWT_SECRET=your-secret
-REDIS_URL=redis://...
-DEEPSEEK_API_KEY=sk-...
-
-# Worker (Railway) — all of the above plus:
-RESEND_API_KEY=re_xxxxx
-EMAIL_FROM=OpsFlow <noreply@yourdomain.com>
-PORT=8080
-```
-
-### Deploy
-
-```bash
-npx vercel --prod --cwd apps/web     # web app
-# Worker auto-deploys on git push to main (Railway)
 ```
 
 ---
 
-## Tech Stack
+## Start Web App
 
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 14 App Router |
-| Language | TypeScript 5 |
-| Database | PostgreSQL 16 (Supabase, pooled) |
-| ORM | Prisma 6 (multi-schema) |
-| Queue | BullMQ v5 + Upstash Redis |
-| Email | Resend SDK |
-| AI | DeepSeek API |
-| Auth | Custom JWT (jose) + bcryptjs + httpOnly cookies |
-| State | TanStack Query + Zustand |
-| Real-time | SSE (EventSource API) |
-| Canvas | React Flow (@xyflow/react) |
-| UI | Tailwind CSS + shadcn-style components |
-| Toast | Sonner |
-| Monorepo | pnpm workspaces + Turborepo |
-| Hosting | Vercel (web) + Railway (worker) |
+```bash
+pnpm dev
+```
 
 ---
 
-*Built with Next.js 14, Prisma 6, BullMQ, PostgreSQL, TypeScript, and Tailwind CSS. ~6,400 lines across ~135 files.*
+## Start Worker
+
+```bash
+pnpm worker
+```
+
+---
+
+# Environment Variables
+
+## Web
+
+```env
+DATABASE_URL=
+REDIS_URL=
+OPENAI_API_KEY=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+```
+
+---
+
+## Worker
+
+```env
+DATABASE_URL=
+REDIS_URL=
+OPENAI_API_KEY=
+
+# Optional email integration
+RESEND_API_KEY=
+EMAIL_FROM=
+```
+
+---
+
+# Deployment
+
+## Deploy Web
+
+```bash
+npx vercel --prod --cwd apps/web
+```
+
+---
+
+## Deploy Worker
+
+Worker deploys independently on Railway.
+
+---
+
+# Email Integration Notes
+
+The workflow engine already supports real outbound email execution through Resend integration.
+
+To fully enable live email delivery:
+
+1. Add a Resend API key
+2. Verify a custom domain
+3. Configure EMAIL_FROM
+
+The public deployment may currently run in demo mode without active outbound email enabled.
+
+---
+
+# Future Expansion
+
+Planned future capabilities:
+
+- webhook triggers
+- Slack integrations
+- workflow marketplace
+- collaborative workflow editing
+- feature flags
+- usage metering
+- billing systems
+- AI agent execution
+- advanced analytics
+
+---
+
+# For Recruiters & Clients
+
+This project demonstrates:
+
+- production-style SaaS engineering
+- async workflow systems
+- distributed architecture
+- queue orchestration
+- operational monitoring
+- multi-tenant application design
+- AI-assisted automation
+- scalable monorepo organization
+- backend + frontend ownership
+
+The goal was not feature completeness.
+
+The goal was:
+
+> building a believable operational SaaS system with credible engineering complexity.
+
+---
+
+# Author
+
+Gloria Han
+
+Focus Areas:
+
+- AI Workflow Systems
+- SaaS Architecture
+- CRM Automation
+- Operational Dashboards
+- Async Processing Systems
+- Full Stack Product Engineering
