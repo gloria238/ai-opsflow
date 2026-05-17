@@ -57,19 +57,16 @@ export default function RegisterPage() {
 
         {verifyUrl ? (
           <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-center">
-              <p className="text-sm font-medium text-blue-800 mb-2">Verify Your Email</p>
-              <p className="text-xs text-blue-600 mb-3">
-                Click the link below to complete registration. This link expires in 10 minutes.
+            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-4 text-center">
+              <p className="text-sm font-medium text-emerald-800 mb-2">Check your email</p>
+              <p className="text-xs text-emerald-600 mb-3">
+                We sent a verification link to your email. Click it to complete registration. The link expires in 10 minutes.
               </p>
-              <a
-                href={verifyUrl}
-                className="inline-block rounded-lg bg-blue-600 text-white text-sm font-medium px-6 py-2.5 hover:bg-blue-700 transition-colors"
-              >
-                Complete Registration
-              </a>
-              <p className="text-xs text-blue-500 mt-3">
-                After verification, sign in with your email and password.
+              <p className="text-xs text-zinc-400 mt-3">
+                No email?{" "}
+                <a href={verifyUrl} className="text-blue-600 underline hover:text-blue-700">
+                  Click here to verify manually
+                </a>
               </p>
             </div>
           </div>

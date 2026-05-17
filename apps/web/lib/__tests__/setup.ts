@@ -21,3 +21,7 @@ for (const p of envPaths) {
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = "test-jwt-secret-minimum-32-chars-long!!";
 }
+
+// Force in-memory rate limiter for unit tests (real Redis is slow)
+delete process.env.UPSTASH_REDIS_REST_URL;
+delete process.env.UPSTASH_REDIS_REST_TOKEN;

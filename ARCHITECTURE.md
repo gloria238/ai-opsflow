@@ -953,4 +953,61 @@ npx vercel --prod --cwd apps/web   # 部署到 Vercel 生产环境
 
 **工程水平评估: Senior Full-Stack Engineer**
 
-该项目展示了一个专业级 SaaS 产品的完整生命周期——从数据库设计、API 架构、前端工程、异步处理到安全加固和 DevOps。架构决策合理（事件溯源、幂等性、版本化工作流），代码组织清晰，问题处理系统化（GOTCHA 文档记录、安全审计整改）。薄弱环节：缺少自动化测试。
+该项目展示了一个专业级 SaaS 产品的完整生命周期——从数据库设计、API 架构、前端工程、异步处理到安全加固和 DevOps。架构决策合理（事件溯源、幂等性、版本化工作流），代码组织清晰，问题处理系统化（GOTCHA 文档记录、安全审计整改）。已建立完整的三层自动化测试体系（114 个测试：Vitest 单元 + 集成 + Playwright E2E）。
+
+---
+
+## 15. 自动化测试体系
+
+### 三层测试金字塔
+
+```
+                    ┌──────────────┐
+                    │  E2E (4 spec) │  ← Playwright, 真实浏览器
+                    ├──────────────┤
+                    │  集成 (82 个)  │  ← Vitest + fetch, 真实 HTTP, RBAC 矩阵
+                    ├──────────────┤
+                    │  单元 (32 个)  │  ← Vitest, 纯函数: auth/pwd/perm/rate
+                    └──────────────┘
+```
+
+### 测试命令
+
+```bash
+pnpm --filter @opsflow/web test              # 单元测试 (2s, 无依赖)
+pnpm --filter @opsflow/web test:integration  # 集成测试 (需 pnpm dev)
+pnpm --filter @opsflow/web test:e2e          # E2E (需 npx playwright install chromium)
+```
+
+### 测试目录结构
+
+```
+apps/web/
+├── lib/__tests__/
+│   ├── setup.ts / helpers.ts       # 测试基础设施
+│   ├── auth.test.ts                 # JWT sign/verify
+│   ├── password.test.ts             # bcrypt hash/verify
+│   ├── permissions.test.ts          # 10 权限 x 4 角色
+│   ├── rate-limit.test.ts           # 内存限流 100 req/min
+│   ├── api-auth.test.ts             # 登录/注册 (10)
+│   ├── business-flow.test.ts        # 端到端业务流 (7)
+│   ├── api-workflows.test.ts        # 工作流 CRUD x RBAC (27)
+│   ├── api-leads.test.ts            # 线索 CRUD x RBAC (17)
+│   ├── api-members.test.ts          # 成员管理 x RBAC (14)
+│   ├── api-org-settings.test.ts     # 组织设置 x RBAC (5)
+│   └── api-audit-log.test.ts        # 审计日志 x RBAC (2)
+├── e2e/
+│   ├── auth.spec.ts                 # 登录/注册/登出
+│   ├── workflows.spec.ts            # 工作流创建/构建器
+│   ├── leads.spec.ts                # 线索 CRUD
+│   └── rbac.spec.ts                 # UI 权限守卫
+├── vitest.config.ts
+├── vitest.integration.config.ts
+└── playwright.config.ts
+```
+
+### 集成测试依赖
+
+- `pnpm seed-members <org-slug>` — 测试账号: admin/operator/viewer@opsflow.test (密码: test123456)
+- `alice@example.com` — owner 角色 (密码由用户设置)
+- 测试用 `fileParallelism: false` 顺序执行 (共享同一 org)

@@ -90,6 +90,10 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 
   const { name, email, stage } = await request.json();
 
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+
   const lead = await prisma.$transaction(async (tx) => {
     const l = await tx.lead.create({
       data: {

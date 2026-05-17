@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { hashPassword } from "@/lib/password";
-import { getRequestContext, logInfo, logError } from "@/lib/logger";
+import { getRequestContext, logInfo, logError, logWarn } from "@/lib/logger";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
@@ -69,12 +69,32 @@ export async function POST(request: Request) {
 
     const verifyUrl = `/api/auth/verify?token=${loginToken}`;
 
+    // Send verification email via Resend (if configured)
+    if (process.env.RESEND_API_KEY && process.env.EMAIL_FROM) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.headers.get("origin") ?? "http://localhost:3000";
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM,
+          to: email,
+          subject: "Verify your OpsFlow account",
+          html: `<p>Hi ${name},</p><p>Click the link below to verify your account and get started:</p><p><a href="${baseUrl}${verifyUrl}">${baseUrl}${verifyUrl}</a></p><p>This link expires in 10 minutes.</p>`,
+        });
+        logInfo(ctx, "Verification email sent", { userId: user.id, email });
+      } catch (emailErr) {
+        logWarn(ctx, "Failed to send verification email", { userId: user.id, error: String(emailErr) });
+      }
+    } else {
+      logWarn(ctx, "Verification email skipped: RESEND_API_KEY or EMAIL_FROM not configured", { userId: user.id });
+    }
+
     logInfo(ctx, "User registered", { userId: user.id, orgSlug: user.orgSlug });
 
     return NextResponse.json({
       requiresVerification: true,
-      verifyUrl,
-      message: "Account created. Click the verification link to complete registration.",
+      verifyUrl, // fallback: shown in UI if email not received
+      message: "Account created. Check your email for the verification link.",
     }, { status: 201 });
   } catch (error) {
     logError(ctx, "Register error", error);

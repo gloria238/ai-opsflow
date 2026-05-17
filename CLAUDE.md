@@ -68,12 +68,17 @@ pnpm --filter @opsflow/worker dev
 # Database
 pnpm seed                          # Seed demo data (destructive — drops all data)
 pnpm seed-prod <org-slug>          # Non-destructive: 3 templates + 5 leads (idempotent by name)
-pnpm seed-members <org-slug>       # RBAC test accounts
+pnpm seed-members <org-slug>       # RBAC test accounts (admin/operator/viewer @opsflow.test / test123456)
 pnpm seed-verify-alice             # Mark alice@example.com as email-verified
 pnpm clean-org <org-slug>          # Delete all workflows + leads in an org (FK-safe)
 pnpm --filter @opsflow/db generate # Regenerate Prisma client
 pnpm --filter @opsflow/db push     # Push schema to DB
 pnpm --filter @opsflow/db prisma studio  # Open Prisma Studio
+
+# Testing (all run from apps/web)
+pnpm --filter @opsflow/web test              # Phase 1: 32 unit tests (vitest, ~2s)
+pnpm --filter @opsflow/web test:integration  # Phase 2: 82 API integration tests (needs pnpm dev running)
+pnpm --filter @opsflow/web test:e2e          # Phase 3: Playwright E2E (needs Chromium: npx playwright install chromium)
 
 # Add dependencies
 pnpm --filter @opsflow/web add <pkg>
@@ -140,41 +145,46 @@ packages/
 ### Key files
 
 ```
-apps/web/lib/auth.ts              — JWT sign/verify (jose), Edge-compatible, no fallback secret
-apps/web/lib/password.ts          — bcrypt hash/verify (10 rounds), Node.js only (not Edge)
-apps/web/lib/session.ts           — Server-side session from JWT cookie
-apps/web/lib/audit.ts              — Audit log write helper (used in all mutation endpoints)
-apps/web/lib/permissions.ts       — 10 RBAC permissions + role matrix
-apps/web/lib/rate-limit.ts        — Upstash Redis sliding-window rate limiter (in-memory fallback)
-apps/web/lib/ai.ts                — DeepSeek API client
-apps/web/lib/feature-flags.ts     — Env-based feature toggles
-apps/web/lib/logger.ts            — Structured JSON logging (PII-safe)
-apps/web/lib/prompts.ts           — AI system prompts + builders
-apps/web/middleware.ts            — JWT guard + Redis rate limiting (100 req/min per IP)
-apps/web/next.config.js           — transpilePackages, security headers (CSP/HSTS/XFO)
-apps/web/vercel.json              — Vercel build config (prisma generate → next build)
-apps/worker/src/queue.ts          — Direct Redis connection + BullMQ Queue
-apps/worker/src/email.ts          — Resend email sender + {{variable}} template resolver
-apps/worker/src/index.ts          — Worker: DAG execution, real email, retry, condition eval, delay, HTTP healthcheck
-packages/db/prisma/schema.prisma  — All 10 models with @opsflow schema
-packages/db/index.ts              — PrismaClient singleton export
-packages/db/seed-production.ts    — 3 sellable workflow templates + 5 demo leads
-packages/db/seed-verify-alice.ts  — Mark alice@example.com emailVerified=true
-packages/db/clean-demo-org.ts     — FK-safe org cleanup before re-seed
+apps/web/lib/auth.ts                — JWT sign/verify (jose), Edge-compatible, no fallback secret
+apps/web/lib/password.ts            — bcrypt hash/verify (10 rounds), Node.js only (not Edge)
+apps/web/lib/session.ts             — Server-side session from JWT cookie
+apps/web/lib/audit.ts               — Audit log write helper (used in all mutation endpoints)
+apps/web/lib/permissions.ts         — 10 RBAC permissions + role matrix (PERMISSION_MAP exported for tests)
+apps/web/lib/rate-limit.ts          — Upstash Redis sliding-window rate limiter (in-memory fallback)
+apps/web/lib/ai.ts                  — DeepSeek API client
+apps/web/lib/feature-flags.ts       — Env-based feature toggles
+apps/web/lib/logger.ts              — Structured JSON logging (PII-safe)
+apps/web/lib/prompts.ts             — AI system prompts + builders
+apps/web/middleware.ts              — JWT guard + Redis rate limiting (100 req/min per IP)
+apps/web/vitest.config.ts           — Unit test config (excludes integration/E2E files)
+apps/web/vitest.integration.config.ts — Integration test config (sequential file execution)
+apps/web/playwright.config.ts       — Playwright E2E config (Chromium, auto-starts dev server)
+apps/web/lib/__tests__/             — 4 unit test files (32 tests) + helpers + 7 integration test files (82 tests)
+apps/web/e2e/                       — 4 Playwright E2E specs
+apps/worker/src/queue.ts            — Direct Redis connection + BullMQ Queue
+apps/worker/src/email.ts            — Resend email sender + {{variable}} template resolver
+apps/worker/src/index.ts            — Worker: DAG execution, email skip guard, retry, condition eval, delay, HTTP healthcheck
+packages/db/prisma/schema.prisma    — All 10 models with @opsflow schema
+packages/db/index.ts                — PrismaClient singleton export
+packages/db/seed-production.ts      — 3 sellable workflow templates (email→update_lead) + 5 demo leads
+packages/db/seed-members.ts         — RBAC test accounts (admin/operator/viewer @opsflow.test)
+packages/db/seed-verify-alice.ts    — Mark alice@example.com emailVerified=true
+packages/db/clean-demo-org.ts       — FK-safe org cleanup before re-seed
 ```
 
-### State of the project (2026-05-15)
+### State of the project (2026-05-17)
 
 - **Phase 7 complete: Security Hardening**. 10 vulnerabilities fixed including JWT, rate limiting, security headers, email verification, PII logging.
-- **~7,000 lines** across ~150 files. 30 API routes + SSE streaming + 10 loading.tsx skeletons + 3 sellable templates.
+- **Phase 8 complete: Testing (3 layers)**. 32 unit + 82 integration + 4 E2E specs = **114 tests total**. Vitest for unit/integration, Playwright for E2E.
+- **~7,000 lines** across ~150 files. 31 API routes + SSE streaming + 10 loading.tsx skeletons + 3 sellable templates.
 - Web app: ✅ Vercel (login with direct JWT, register with verification link, dashboard, workflows, leads, runs, settings, members, audit log all functional).
-- Worker: ✅ Railway (BullMQ consuming queue, DAG execution, real email via Resend, healthcheck HTTP server).
-- Email: ✅ Resend SDK — `send_email` action sends real emails with `{{variable}}` template resolution. (Not currently configured for verification emails.)
-- Templates: 3 production workflows (Lead Qualification, Cold Outreach Follow-up, Trial User Nurture).
+- Worker: ✅ Railway (BullMQ consuming queue, DAG execution, healthcheck HTTP server).
+- Email: ⚠️ Resend SDK in place but `RESEND_API_KEY` not configured — `send_email` actions gracefully skip in worker. Seed templates use `update_lead` actions instead of email.
+- Templates: 3 production workflows (Lead Qualification, Cold Outreach Follow-up, Trial User Nurture) — all email nodes replaced with CRM actions.
 - AI: 4 endpoints (suggest-nodes, generate-workflow, score-lead, analyze-run) via DeepSeek API.
-- UX: sonner toast notifications on all actions, loading skeletons on all pages, button loading states persist through navigation.
+- UX: sonner toast notifications, loading skeletons, button loading states, breadcrumb navigation, card-based dashboard with recent runs.
+- Known: lead POST route doesn't validate `name` before Prisma (500 instead of 400). pgBouncer incompatible with interactive `$transaction` — PUT route uses sequential ops.
 - GitHub push via Desktop works. `npx vercel --prod --cwd apps/web` for manual Vercel deploy.
-- No tests yet (zero test files).
 
 ### Seed scripts reference
 

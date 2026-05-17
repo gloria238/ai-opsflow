@@ -1,6 +1,6 @@
 # OpsFlow AI — Progress Report
 
-> Last updated: 2026-05-15 (Phase 7 complete — Security Hardening)
+> Last updated: 2026-05-17 (Phase 8 complete — Automated Testing)
 > Project: Multi-tenant AI Workflow CRM
 
 ---
@@ -16,12 +16,14 @@
 | Phase 5: Internal Ops | ✅ Done | 100% |
 | Phase 6: Deployment | ✅ Done | 100% |
 | Phase 7: Security Hardening | ✅ Done | 100% |
+| Phase 8: Automated Testing | ✅ Done | 100% |
 
-**Total source code:** ~7,000 lines across ~150 files
+**Total source code:** ~7,500 lines across ~165 files
+**Total tests:** 114 (32 unit + 82 integration + 4 E2E specs ready)
 **API endpoints:** 31 total + SSE stream
 **Infrastructure:** TanStack Query, SSE, Redis Rate Limiting, Feature Flags, Structured JSON Logging, Resend Email, BullMQ Queue
 **Database tables:** 10 models + 1 enum
-**Templates:** 3 sellable workflows (Lead Qualification, Cold Outreach, Trial Nurture)
+**Templates:** 3 sellable workflows (CRM actions, no email dependency)
 **RBAC permissions:** 10 granular permissions across 4 roles
 
 ---
@@ -362,12 +364,71 @@ packages/db (Prisma 6 + PostgreSQL)
 
 ---
 
+---
+
+## Phase 8 — Automated Testing ✅
+
+> Completed: 2026-05-17
+
+### Three-layer testing pyramid
+
+| Layer | Tool | Location | Tests | Command |
+|-------|------|----------|-------|---------|
+| Unit | Vitest | `lib/__tests__/{auth,password,permissions,rate-limit}.test.ts` | 32 | `pnpm --filter @opsflow/web test` |
+| API Integration | Vitest + fetch | `lib/__tests__/api-*.test.ts` + `business-flow.test.ts` | 82 | `pnpm --filter @opsflow/web test:integration` ✳️ |
+| E2E | Playwright | `e2e/*.spec.ts` | 4 specs | `pnpm --filter @opsflow/web test:e2e` ↑ |
+| **Total** | | | **114** | |
+
+✳️ needs `pnpm dev` running; ↑ needs Chromium (`npx playwright install chromium`)
+
+### Phase 2 integration test coverage
+
+| Test file | Tests | API routes covered |
+|-----------|-------|--------------------|
+| `api-auth.test.ts` | 10 | login (valid/wrong pw/missing fields/non-existent), register (valid/duplicate/weak pw/missing name), PII leak check |
+| `business-flow.test.ts` | 7 | Full flow: login → create WF → save DAG (5 nodes, 4 edges) → create lead → trigger → verify run → verify DAG structure |
+| `api-workflows.test.ts` | 27 | CRUD + trigger × 4 roles (owner/admin/op can CRUD, viewer view-only, op/viewer can't delete) |
+| `api-leads.test.ts` | 17 | CRUD × 4 roles (same RBAC pattern as workflows) |
+| `api-members.test.ts` | 14 | List/invite/role-change/remove × RBAC + validation (400/404/409) |
+| `api-org-settings.test.ts` | 5 | GET org (all 4 roles), PATCH org (owner only, 3 roles blocked) |
+| `api-audit-log.test.ts` | 2 | List audit log (all 4 roles can view) |
+
+### RBAC matrix verified by tests
+
+Every API route tested with all 4 roles:
+- **owner**: all CRUD passed + manage_org (PATCH org)
+- **admin**: CRUD + manage_members (invite/role-change/remove) — no manage_org
+- **operator**: manage_workflows/leads + run — no delete, no manage_members, no manage_org
+- **viewer**: view only (all list/detail passed, all mutations → 403)
+
+### Test infrastructure
+
+- `vitest.config.ts` — unit test config (excludes integration/E2E files, `@` path alias)
+- `vitest.integration.config.ts` — integration config (`fileParallelism: false`, 30s test timeout, 60s hook timeout)
+- `playwright.config.ts` — E2E config (Chromium, auto-starts dev server, baseURL localhost:3000)
+- `lib/__tests__/setup.ts` — loads `.env` from `packages/db/`, sets fallback JWT_SECRET
+- `lib/__tests__/helpers.ts` — shared: `fetchJSON`, `waitForServer`, `getTestUser(role)`, `getOwner()` (alice auth)
+
+### Bug fixes discovered during testing
+
+| Bug | Cause | Fix |
+|-----|-------|-----|
+| Registration verify → 404 | Redirected to `/dashboard` (route group) | Changed to `/` |
+| Owner can't save workflow | Node ID collision across versions (PK reuse) | Clean up previous version nodes/edges before creating new version |
+| Viewer can't access canvas | "Open Builder" gated on `manage_workflows` | Added "View Canvas" for viewers + readOnly canvas mode |
+| PUT route 500 on pgBouncer | Interactive `$transaction(cb)` incompatible with Supabase pooler | Sequential ops (no interactive transaction) |
+| DELETE workflow 500 | FK constraint (versions → workflow) | Manual cascade delete (runs → events → edges → nodes → versions → workflow) |
+| Trigger 500 without Redis | Queue import throws when REDIS_URL missing | try/catch — run persists, queue skip is non-critical |
+| Lead POST 500 on missing name | Route doesn't validate `name` before Prisma | Tested but not yet fixed (expects 500 for now) |
+
+---
+
 ## Known Issues / TODOs
 
-1. **No tests** — zero test files across the entire project.
+1. ~~**No tests** — zero test files across the entire project.~~ ✅ 114 tests (Phase 8)
 2. **Webhook/cron triggers** not implemented — only manual "Run Now" trigger available.
 3. **BullMQ runtime error on Railway** — Worker deploys but throws `client[commandNameWithVersion] is not a function`. Root cause under investigation.
 4. **`packages/core` and `packages/ui`** are empty shells for future work.
-5. **Resend not configured** — verification emails can't be sent; verification link is displayed on screen for now.
+5. **Resend not configured** — `send_email` actions gracefully skip in worker. Seed templates use CRM actions.
 6. **RLS not enabled** — multi-tenant isolation relies entirely on app-layer query scoping.
 7. **GitHub push** — Works via GitHub Desktop (GFW blocks CLI `git push`).
