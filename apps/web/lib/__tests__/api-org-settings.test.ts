@@ -5,6 +5,7 @@ import { fetchJSON, BASE, waitForServer, getTestUser, getOwner, getOrgSlug } fro
 
 let admin: TestUser, operator: TestUser, viewer: TestUser, owner: TestUser;
 let orgSlug: string;
+let originalName: string;
 
 describe("Org Settings API", () => {
   beforeAll(async () => {
@@ -14,7 +15,22 @@ describe("Org Settings API", () => {
     operator = await getTestUser("operator");
     viewer = await getTestUser("viewer");
     orgSlug = await getOrgSlug();
+    // Save original org name to restore after tests
+    const { body } = await fetchJSON(`${BASE}/api/orgs/${orgSlug}`, {
+      headers: { cookie: owner.cookie },
+    });
+    originalName = body.name;
   }, 30000);
+
+  afterAll(async () => {
+    if (originalName && originalName !== "Updated Test Org") {
+      await fetchJSON(`${BASE}/api/orgs/${orgSlug}`, {
+        method: "PATCH",
+        headers: { cookie: owner.cookie },
+        body: JSON.stringify({ name: originalName }),
+      });
+    }
+  });
 
   // ── GET /orgs/{slug} ────────────────────────────────────────────────
 

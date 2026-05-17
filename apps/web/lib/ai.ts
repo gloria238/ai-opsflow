@@ -76,12 +76,22 @@ export async function callDeepSeekJSON<T>(
     temperature: options?.temperature ?? 0.3,
   });
 
-  const cleaned = raw.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/m, "$1").trim();
+  // Extract JSON from markdown code blocks (handles text before/after)
+  let cleaned = raw;
+  const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeBlock) {
+    cleaned = codeBlock[1].trim();
+  }
   try {
     return JSON.parse(cleaned) as T;
   } catch {
+    // Last resort: try to find JSON object in the text
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try { return JSON.parse(jsonMatch[0]) as T; } catch { /* fall through */ }
+    }
     throw new AIClientError(
-      `AI returned invalid JSON: ${cleaned.slice(0, 200)}`,
+      `AI returned invalid JSON: ${cleaned.slice(0, 300)}`,
     );
   }
 }
