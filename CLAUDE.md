@@ -69,6 +69,7 @@ pnpm --filter @opsflow/worker dev
 pnpm seed                          # Seed demo data (destructive — drops all data)
 pnpm seed-prod <org-slug>          # Non-destructive: 3 templates + 5 leads (idempotent by name)
 pnpm seed-members <org-slug>       # RBAC test accounts (admin/operator/viewer @opsflow.test / test123456)
+pnpm seed-demo                     # Client presentation demo (Acme Corp: 15 leads, 3 WFs, 10 runs)
 pnpm seed-verify-alice             # Mark alice@example.com as email-verified
 pnpm clean-org <org-slug>          # Delete all workflows + leads in an org (FK-safe)
 pnpm --filter @opsflow/db generate # Regenerate Prisma client
@@ -167,6 +168,7 @@ apps/worker/src/index.ts            — Worker: DAG execution, email skip guard,
 packages/db/prisma/schema.prisma    — All 10 models with @opsflow schema
 packages/db/index.ts                — PrismaClient singleton export
 packages/db/seed-production.ts      — 3 sellable workflow templates (email→update_lead) + 5 demo leads
+packages/db/seed-demo.ts            — Client demo: Acme Corp, 15 leads, 3 WFs, 10 runs, metrics
 packages/db/seed-members.ts         — RBAC test accounts (admin/operator/viewer @opsflow.test)
 packages/db/seed-verify-alice.ts    — Mark alice@example.com emailVerified=true
 packages/db/clean-demo-org.ts       — FK-safe org cleanup before re-seed
@@ -174,17 +176,18 @@ packages/db/clean-demo-org.ts       — FK-safe org cleanup before re-seed
 
 ### State of the project (2026-05-17)
 
-- **Phase 7 complete: Security Hardening**. 10 vulnerabilities fixed including JWT, rate limiting, security headers, email verification, PII logging.
-- **Phase 8 complete: Testing (3 layers)**. 32 unit + 82 integration + 4 E2E specs = **114 tests total**. Vitest for unit/integration, Playwright for E2E.
-- **~7,000 lines** across ~150 files. 31 API routes + SSE streaming + 10 loading.tsx skeletons + 3 sellable templates.
-- Web app: ✅ Vercel (login with direct JWT, register with verification link, dashboard, workflows, leads, runs, settings, members, audit log all functional).
-- Worker: ✅ Railway (BullMQ consuming queue, DAG execution, healthcheck HTTP server).
-- Email: ⚠️ Resend SDK in place but `RESEND_API_KEY` not configured — `send_email` actions gracefully skip in worker. Seed templates use `update_lead` actions instead of email.
-- Templates: 3 production workflows (Lead Qualification, Cold Outreach Follow-up, Trial User Nurture) — all email nodes replaced with CRM actions.
-- AI: 4 endpoints (suggest-nodes, generate-workflow, score-lead, analyze-run) via DeepSeek API.
-- UX: sonner toast notifications, loading skeletons, button loading states, breadcrumb navigation, card-based dashboard with recent runs.
-- Known: lead POST route doesn't validate `name` before Prisma (500 instead of 400). pgBouncer incompatible with interactive `$transaction` — PUT route uses sequential ops.
-- GitHub push via Desktop works. `npx vercel --prod --cwd apps/web` for manual Vercel deploy.
+- **Phase 7 complete: Security Hardening**. 10 vulnerabilities fixed.
+- **Phase 8 complete: Testing (3 layers)**. 32 unit + 82 integration + 4 E2E specs = **114 tests**.
+- **Phase 9: Polish**. Dashboard with run metrics, lead pipeline chart, focus states, reduced-motion support, Resend verification emails.
+- **~8,000 lines** across ~165 files. 31 API routes + SSE streaming + 10 loading.tsx + 3 sellable templates + demo seed.
+- Web app: ✅ Vercel (JWT login, email verification via Resend, dashboard, workflows, leads, runs, settings, members, audit log).
+- Worker: ✅ Railway (BullMQ + Redis, DAG execution, healthcheck, send_email skip guard).
+- Email: ✅ Resend verification emails sent on registration. `send_email` in worker gracefully skips if not configured.
+- Templates: 3 production workflows (all use CRM actions, zero email dependency).
+- Demo: `pnpm seed-demo` → Acme Corp with 15 leads, 3 WFs, 10 runs (6 completed). Login: demo@acmecorp.com / demo123456.
+- UX: breadcrumb nav, card dashboard, run metrics, lead pipeline bars, focus-visible rings, prefers-reduced-motion, cursor-pointer on cards.
+- Known: pgBouncer incompatible with interactive `$transaction` — PUT route uses sequential ops.
+- GitHub push via Desktop. `npx vercel --prod --cwd apps/web` for Vercel deploy.
 
 ### Seed scripts reference
 

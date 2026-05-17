@@ -1011,3 +1011,38 @@ apps/web/
 - `pnpm seed-members <org-slug>` — 测试账号: admin/operator/viewer@opsflow.test (密码: test123456)
 - `alice@example.com` — owner 角色 (密码由用户设置)
 - 测试用 `fileParallelism: false` 顺序执行 (共享同一 org)
+
+---
+
+## 16. 演示种子数据
+
+### `pnpm seed-demo`
+
+一键创建客户演示场景:
+
+- **组织**: Acme Corp (acme-corp)
+- **用户**: demo@acmecorp.com / demo123456
+- **15 条线索**: 分布在 6 个阶段 (new → qualified → proposal → negotiation → won → lost)
+- **3 个工作流**: Lead Qualification, Cold Outreach Follow-up, Trial User Nurture
+- **10 条运行记录**: 6 completed, 1 failed, 1 running, 2 queued
+- **5 条线索活动**: 带有阶段变更元数据
+- **仪表盘**: 管道柱状图、运行指标、最近运行全部填充
+
+### 仪表盘 UX 增强 (Phase 9)
+
+- 运行健康指标: 4 张卡片展示 completed/failed/queued/running 计数
+- 线索管道图: 6 阶段水平柱状图，彩色编码
+- focus-visible 焦点环 + cursor-pointer + prefers-reduced-motion
+- Resend 验证邮件 (注册时发送)
+
+### 工作流引擎能力
+
+| 节点类型 | 状态 | 说明 |
+|---------|------|------|
+| Trigger (manual) | ✅ | "Run Now" 按钮 |
+| Action (update_lead) | ✅ | 更新线索阶段/标签 |
+| Action (score_lead) | ✅ | AI 线索评分 (需 DeepSeek) |
+| Action (send_email) | ✅ | Resend 邮件 (需 API key) |
+| Condition | ✅ | 字段比较，true/false 分支 |
+| Delay | ✅ | BullMQ 延迟，分钟/小时/天 |
+| Trigger (webhook/cron) | ❌ | 未实现 |

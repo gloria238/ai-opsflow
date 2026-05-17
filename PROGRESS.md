@@ -17,6 +17,7 @@
 | Phase 6: Deployment | ✅ Done | 100% |
 | Phase 7: Security Hardening | ✅ Done | 100% |
 | Phase 8: Automated Testing | ✅ Done | 100% |
+| Phase 9: Polish & Demo | ✅ Done | 100% |
 
 **Total source code:** ~7,500 lines across ~165 files
 **Total tests:** 114 (32 unit + 82 integration + 4 E2E specs ready)
@@ -423,12 +424,59 @@ Every API route tested with all 4 roles:
 
 ---
 
+---
+
+## Phase 9 — Polish & Demo ✅
+
+> Completed: 2026-05-17
+
+### Dashboard UX enhancements (UI UX Pro Max applied)
+
+| Improvement | Implementation |
+|-------------|---------------|
+| Run health metrics | 4 cards showing completed (green) / failed (red) / queued / running counts |
+| Lead pipeline chart | Horizontal bar chart: 6 stages with colored bars and counts |
+| Focus-visible rings | All clickable cards and links have `focus-visible:ring-2` for keyboard nav |
+| cursor-pointer | All cards/links have `cursor-pointer` for touch feedback |
+| prefers-reduced-motion | CSS `@media` query disables all animations/transitions for accessibility |
+| Quick actions | Dashboard has 3 quick-action buttons with focus rings |
+
+### Resend verification emails
+
+- `register/route.ts` sends verification email via Resend on registration
+- Falls back to showing link in UI if RESEND_API_KEY not configured
+- Register page shows "Check your email" with small "verify manually" fallback
+
+### Demo seed script (`pnpm seed-demo`)
+
+Creates client-ready presentation data:
+- **Org**: Acme Corp (acme-corp)
+- **User**: demo@acmecorp.com / demo123456 (owner)
+- **15 leads**: 3 new, 4 qualified, 3 proposal, 2 negotiation, 2 won, 1 lost
+- **3 workflows**: Lead Qualification, Cold Outreach Follow-up, Trial User Nurture
+- **10 runs**: 6 completed, 1 failed, 1 running, 2 queued
+- **5 lead activities**: stage transitions with realistic metadata
+- **Dashboard**: pipeline bars, run metrics, recent runs all populated
+
+### AI JSON parsing fix
+
+- `callDeepSeekJSON` improved: extracts JSON from code blocks with surrounding text, falls back to regex `{...}` extraction, better error messages
+
+### Cookie secure flag fix
+
+- All 5 cookie `secure` flags: `process.env.NODE_ENV === "production"` (was hardcoded `true`)
+
+### Lead name validation fix
+
+- `leads/route.ts` POST: validates `name` is required and non-empty → 400 (was 500 from Prisma)
+
+---
+
 ## Known Issues / TODOs
 
 1. ~~**No tests** — zero test files across the entire project.~~ ✅ 114 tests (Phase 8)
 2. **Webhook/cron triggers** not implemented — only manual "Run Now" trigger available.
-3. **BullMQ runtime error on Railway** — Worker deploys but throws `client[commandNameWithVersion] is not a function`. Root cause under investigation.
+3. **BullMQ runtime error on Railway** — Worker deploys but throws `client[commandNameWithVersion] is not a function`.
 4. **`packages/core` and `packages/ui`** are empty shells for future work.
-5. **Resend not configured** — `send_email` actions gracefully skip in worker. Seed templates use CRM actions.
+5. ~~**Resend not configured** — send_email actions gracefully skip.~~ ✅ Verification emails sent via Resend.
 6. **RLS not enabled** — multi-tenant isolation relies entirely on app-layer query scoping.
-7. **GitHub push** — Works via GitHub Desktop (GFW blocks CLI `git push`).
