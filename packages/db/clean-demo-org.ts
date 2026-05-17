@@ -2,6 +2,10 @@
 // Usage: pnpm tsx packages/db/clean-demo-org.ts <org-slug>
 // WARNING: destructive — only run this on demo data.
 
+import { config } from "dotenv";
+import path from "path";
+config({ path: path.resolve(process.cwd(), "packages/db/.env") });
+
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

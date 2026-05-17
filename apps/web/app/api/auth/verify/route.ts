@@ -54,8 +54,8 @@ export async function GET(request: Request) {
 
     logInfo(ctx, "Login verified", { userId: user.id, orgSlug: membership.organization.slug });
 
-    // Redirect to dashboard with JWT cookie set
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    // Redirect to home (dashboard) with JWT cookie set
+    const response = NextResponse.redirect(new URL("/", request.url));
     response.cookies.set("session", jwt, {
       httpOnly: true,
       secure: true,

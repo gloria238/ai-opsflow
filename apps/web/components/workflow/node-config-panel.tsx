@@ -6,9 +6,10 @@ interface Props {
   node: WorkflowFlowNode | null;
   onUpdate: (nodeId: string, data: { label?: string; config?: Record<string, unknown> }) => void;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
-export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
+export function NodeConfigPanel({ node, onUpdate, onClose, readOnly }: Props) {
   const [label, setLabel] = useState(node?.data?.label || "");
   const [config, setConfig] = useState<Record<string, string>>({});
 
@@ -51,7 +52,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
               <select
                 value={config.type || "manual"}
                 onChange={(e) => updateConfig("type", e.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="manual">Manual</option>
                 <option value="webhook">Webhook</option>
@@ -65,7 +67,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
                   value={config.cron || ""}
                   onChange={(e) => updateConfig("cron", e.target.value)}
                   placeholder="0 9 * * 1"
-                  className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                  className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                  disabled={readOnly}
                 />
               </div>
             )}
@@ -80,7 +83,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
               <select
                 value={config.action || ""}
                 onChange={(e) => updateConfig("action", e.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="">Select action...</option>
                 <option value="send_email">Send email</option>
@@ -102,7 +106,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
                 value={config.field || ""}
                 onChange={(e) => updateConfig("field", e.target.value)}
                 placeholder="e.g. lead.stage"
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
             <div>
@@ -110,7 +115,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
               <select
                 value={config.operator || "equals"}
                 onChange={(e) => updateConfig("operator", e.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="equals">equals</option>
                 <option value="not_equals">not equals</option>
@@ -125,7 +131,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
                 value={config.value || ""}
                 onChange={(e) => updateConfig("value", e.target.value)}
                 placeholder="e.g. qualified"
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
           </div>
@@ -142,7 +149,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
                 value={config.duration || ""}
                 onChange={(e) => updateConfig("duration", e.target.value)}
                 placeholder="5"
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
             <div>
@@ -150,7 +158,8 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
               <select
                 value={config.unit || "minutes"}
                 onChange={(e) => updateConfig("unit", e.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                disabled={readOnly}
+                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="minutes">minutes</option>
                 <option value="hours">hours</option>
@@ -168,7 +177,7 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
   return (
     <div className="w-72 border-l bg-white flex flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <span className="text-sm font-semibold text-gray-800">Configure Node</span>
+        <span className="text-sm font-semibold text-gray-800">{readOnly ? "Node Details" : "Configure Node"}</span>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -178,25 +187,28 @@ export function NodeConfigPanel({ node, onUpdate, onClose }: Props) {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             onBlur={() => onUpdate(node.id, { label })}
-            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            disabled={readOnly}
+            className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
           />
         </div>
         {renderConfigFields()}
       </div>
-      <div className="border-t p-3">
-        <button
-          onClick={() => {
-            const parsedConfig: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(config)) {
-              parsedConfig[k] = v;
-            }
-            onUpdate(node.id, { label, config: parsedConfig });
-          }}
-          className="w-full rounded bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
-        >
-          Apply
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="border-t p-3">
+          <button
+            onClick={() => {
+              const parsedConfig: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(config)) {
+                parsedConfig[k] = v;
+              }
+              onUpdate(node.id, { label, config: parsedConfig });
+            }}
+            className="w-full rounded bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
+          >
+            Apply
+          </button>
+        </div>
+      )}
     </div>
   );
 }

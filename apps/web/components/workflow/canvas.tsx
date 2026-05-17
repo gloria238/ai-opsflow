@@ -63,11 +63,13 @@ function InnerCanvas({
   nodeStatuses,
   orgSlug,
   onSave,
+  readOnly,
 }: {
   workflow: CanvasWorkflow | null;
   nodeStatuses?: Map<string, RunNodeStatus> | null;
   orgSlug?: string;
   onSave: (name: string, nodes: WorkflowFlowNode[], edges: WorkflowFlowEdge[]) => Promise<void>;
+  readOnly?: boolean;
 }) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -200,39 +202,45 @@ function InnerCanvas({
         onSave={handleSave}
         isDirty={isDirty}
         isSaving={isSaving}
+        readOnly={readOnly}
       />
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-56 border-r bg-gray-50 flex flex-col overflow-y-auto">
-          <NodePalette />
-          {orgSlug && (
-            <AISuggestionsPanel
-              orgSlug={orgSlug}
-              nodes={nodes}
-              edges={edges}
-              selectedNodeType={selectedNode?.data?.nodeType}
-              onAddNode={(node) => {
-                setNodes((nds) => nds.concat(node));
-                setIsDirty(true);
-              }}
-            />
-          )}
-        </div>
+        {!readOnly && (
+          <div className="w-56 border-r bg-gray-50 flex flex-col overflow-y-auto">
+            <NodePalette />
+            {orgSlug && (
+              <AISuggestionsPanel
+                orgSlug={orgSlug}
+                nodes={nodes}
+                edges={edges}
+                selectedNodeType={selectedNode?.data?.nodeType}
+                onAddNode={(node) => {
+                  setNodes((nds) => nds.concat(node));
+                  setIsDirty(true);
+                }}
+              />
+            )}
+          </div>
+        )}
         <div className="flex-1" ref={reactFlowWrapper}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
+            onNodesChange={readOnly ? undefined : onNodesChange}
+            onEdgesChange={readOnly ? undefined : onEdgesChange}
+            onConnect={readOnly ? undefined : onConnect}
+            onDrop={readOnly ? undefined : onDrop}
+            onDragOver={readOnly ? undefined : onDragOver}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
             fitView
-            deleteKeyCode={["Backspace", "Delete"]}
+            deleteKeyCode={readOnly ? [] : ["Backspace", "Delete"]}
             snapToGrid
             snapGrid={[20, 20]}
+            nodesDraggable={!readOnly}
+            nodesConnectable={!readOnly}
+            elementsSelectable={!readOnly}
           >
             <Background color="#e5e7eb" gap={20} />
             <Controls showInteractive={false} />
@@ -253,8 +261,9 @@ function InnerCanvas({
         </div>
         <NodeConfigPanel
           node={selectedNode}
-          onUpdate={updateNodeData}
+          onUpdate={readOnly ? () => {} : updateNodeData}
           onClose={() => setSelectedNode(null)}
+          readOnly={readOnly}
         />
       </div>
     </div>
@@ -266,6 +275,7 @@ export function WorkflowCanvas(props: {
   nodeStatuses?: Map<string, RunNodeStatus> | null;
   orgSlug?: string;
   onSave: (name: string, nodes: WorkflowFlowNode[], edges: WorkflowFlowEdge[]) => Promise<void>;
+  readOnly?: boolean;
 }) {
   return (
     <ReactFlowProvider>

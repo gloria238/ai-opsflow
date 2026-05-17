@@ -147,6 +147,10 @@ async function executeNode(
       const action = (node.config.action as string) ?? "unknown";
 
       if (action === "send_email") {
+        if (!process.env.RESEND_API_KEY) {
+          console.warn("send_email skipped: RESEND_API_KEY not configured");
+          return { action: "send_email", skipped: true, reason: "RESEND_API_KEY not configured" };
+        }
         const result = await sendEmail(node.config as unknown as Parameters<typeof sendEmail>[0], input);
         return {
           action: "send_email",

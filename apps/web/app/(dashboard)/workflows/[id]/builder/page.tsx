@@ -1,11 +1,14 @@
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import { BuilderClient } from "./builder-client";
 
 export default async function BuilderPage({ params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const canManage = hasPermission(session.role, "manage_workflows");
 
   const workflow = await prisma.workflow.findFirst({
     where: { id: params.id, organizationId: session.orgId },
@@ -26,6 +29,7 @@ export default async function BuilderPage({ params }: { params: { id: string } }
     <BuilderClient
       workflowId={workflow.id}
       orgSlug={session.orgSlug}
+      readOnly={!canManage}
       initialWorkflow={{
         id: workflow.id,
         name: workflow.name,

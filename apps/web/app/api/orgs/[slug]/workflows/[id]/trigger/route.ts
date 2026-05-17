@@ -42,9 +42,13 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     },
   });
 
-  // Enqueue the run for BullMQ processing
-  const { workflowQueue } = await import("@opsflow/worker/queue");
-  await workflowQueue.add("execute", { runId: run.id });
+  // Enqueue the run for BullMQ processing (non-critical — run is already persisted)
+  try {
+    const { workflowQueue } = await import("@opsflow/worker/queue");
+    await workflowQueue.add("execute", { runId: run.id });
+  } catch {
+    console.warn("Trigger: queue unavailable (REDIS_URL not configured). Run will stay queued.");
+  }
 
   return NextResponse.json(run, { status: 201 });
 }

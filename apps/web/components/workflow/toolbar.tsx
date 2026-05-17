@@ -7,20 +7,25 @@ interface Props {
   onNameChange: (name: string) => void;
   isDirty: boolean;
   isSaving: boolean;
+  readOnly?: boolean;
 }
 
-export function Toolbar({ workflowName, onSave, onNameChange, isDirty, isSaving }: Props) {
+export function Toolbar({ workflowName, onSave, onNameChange, isDirty, isSaving, readOnly }: Props) {
   const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   return (
     <div className="flex items-center justify-between border-b bg-white px-4 py-2">
       <div className="flex items-center gap-3">
-        <input
-          value={workflowName}
-          onChange={(e) => onNameChange(e.target.value)}
-          className="text-lg font-bold bg-transparent border-none outline-none focus:ring-0 text-gray-800 placeholder-gray-400"
-          placeholder="Workflow name"
-        />
+        {readOnly ? (
+          <span className="text-lg font-bold text-gray-800">{workflowName}</span>
+        ) : (
+          <input
+            value={workflowName}
+            onChange={(e) => onNameChange(e.target.value)}
+            className="text-lg font-bold bg-transparent border-none outline-none focus:ring-0 text-gray-800 placeholder-gray-400"
+            placeholder="Workflow name"
+          />
+        )}
         {isDirty && <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Unsaved</span>}
       </div>
 
@@ -56,14 +61,16 @@ export function Toolbar({ workflowName, onSave, onNameChange, isDirty, isSaving 
 
         <div className="w-px h-5 bg-gray-200 mx-1" />
 
-        {/* Save button */}
-        <button
-          onClick={onSave}
-          disabled={isSaving}
-          className="rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-1.5 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isSaving ? "Saving..." : isDirty ? "Save" : "Saved"}
-        </button>
+        {/* Save button — hidden in read-only mode */}
+        {!readOnly && (
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className="rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-1.5 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isSaving ? "Saving..." : isDirty ? "Save" : "Saved"}
+          </button>
+        )}
       </div>
     </div>
   );

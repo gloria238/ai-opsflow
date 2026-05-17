@@ -7,6 +7,10 @@
 //   viewer@opsflow.test   — viewer role
 // All have password: test123456
 
+import { config } from "dotenv";
+import path from "path";
+config({ path: path.resolve(process.cwd(), "packages/db/.env") });
+
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 

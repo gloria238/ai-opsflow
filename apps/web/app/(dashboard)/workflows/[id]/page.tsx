@@ -21,6 +21,7 @@ export default async function WorkflowDetailPage({ params }: { params: { id: str
   const canDelete = hasPermission(session.role, "delete_workflows");
   const canRun = hasPermission(session.role, "run_workflows");
   const canManage = hasPermission(session.role, "manage_workflows");
+  const canView = hasPermission(session.role, "view_workflows");
 
   return (
     <div>
@@ -31,12 +32,12 @@ export default async function WorkflowDetailPage({ params }: { params: { id: str
         </div>
         <div className="flex items-center gap-2">
           {canRun && <TriggerButton workflowId={params.id} orgSlug={session.orgSlug} />}
-          {canManage && (
+          {canView && (
             <a
               href={`/workflows/${params.id}/builder`}
               className="rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 transition-colors"
             >
-              Open Builder
+              {canManage ? "Open Builder" : "View Canvas"}
             </a>
           )}
           {canDelete && (

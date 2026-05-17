@@ -13,6 +13,7 @@ import type {
 interface Props {
   workflowId: string;
   orgSlug: string;
+  readOnly?: boolean;
   initialWorkflow: {
     id: string;
     name: string;
@@ -21,7 +22,7 @@ interface Props {
   };
 }
 
-export function BuilderClient({ workflowId, orgSlug, initialWorkflow }: Props) {
+export function BuilderClient({ workflowId, orgSlug, readOnly, initialWorkflow }: Props) {
   const [workflow, setWorkflow] = useState<CanvasWorkflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -131,7 +132,7 @@ export function BuilderClient({ workflowId, orgSlug, initialWorkflow }: Props) {
     <div className="h-[calc(100vh-8rem)] -m-6 flex flex-col">
       <div className="flex items-center justify-between border-b bg-white px-4 py-1.5 shrink-0">
         <span className="text-xs text-gray-400">
-          {nodeStatuses ? "Showing run visualization" : "Editing mode"}
+          {readOnly ? "Read-only view" : nodeStatuses ? "Showing run visualization" : "Editing mode"}
         </span>
         <RunSelector
           workflowId={workflowId}
@@ -148,6 +149,7 @@ export function BuilderClient({ workflowId, orgSlug, initialWorkflow }: Props) {
             nodeStatuses={nodeStatuses}
             orgSlug={orgSlug}
             onSave={handleSave}
+            readOnly={readOnly}
           />
         </div>
       </div>

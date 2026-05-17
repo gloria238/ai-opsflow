@@ -1,7 +1,7 @@
 export const ROLES = ["owner", "admin", "operator", "viewer"] as const;
 export type Role = (typeof ROLES)[number];
 
-const PERMISSION_MAP: Record<string, Role[]> = {
+export const PERMISSION_MAP: Record<string, Role[]> = {
   manage_org: ["owner"],
   manage_members: ["owner", "admin"],
   manage_workflows: ["owner", "admin", "operator"],
