@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { WorkerStatusCard } from "./worker-status-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, LayoutGrid, Workflow, Users, Plus, Zap } from "lucide-react";
+import { ArrowRight, LayoutGrid, Workflow, Users, Plus, Zap, CheckCircle, XCircle, Clock, BarChart3 } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -13,7 +13,10 @@ export default async function DashboardPage() {
   const org = await prisma.organization.findUnique({ where: { id: session.orgId } });
   if (!org) redirect("/login");
 
-  const [workflowCount, leadCount, memberCount, recentRuns] = await Promise.all([
+  const [
+    workflowCount, leadCount, memberCount,
+    recentRuns, runStats, leadsByStage,
+  ] = await Promise.all([
     prisma.workflow.count({ where: { organizationId: org.id } }),
     prisma.lead.count({ where: { organizationId: org.id } }),
     prisma.membership.count({ where: { organizationId: org.id } }),
@@ -23,7 +26,32 @@ export default async function DashboardPage() {
       take: 5,
       include: { workflowVersion: { select: { workflow: { select: { name: true } } } } },
     }),
+    // Run totals by status
+    Promise.all([
+      prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: "completed" } }),
+      prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: { in: ["failed", "dead_letter"] } } }),
+      prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: "queued" } }),
+      prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: "running" } }),
+    ]),
+    // Lead stage breakdown
+    prisma.lead.groupBy({ by: ["stage"], where: { organizationId: org.id }, _count: true }),
   ]);
+
+  const [completedRuns, failedRuns, queuedRuns, runningRuns] = runStats;
+  const totalRuns = completedRuns + failedRuns + queuedRuns + runningRuns;
+
+  const stageMap = Object.fromEntries(
+    leadsByStage.map((s) => [s.stage ?? "new", s._count]),
+  );
+  const stages = [
+    { key: "new", label: "New", color: "bg-zinc-400" },
+    { key: "qualified", label: "Qualified", color: "bg-blue-500" },
+    { key: "proposal", label: "Proposal", color: "bg-amber-500" },
+    { key: "negotiation", label: "Negotiation", color: "bg-orange-500" },
+    { key: "closed-won", label: "Won", color: "bg-emerald-500" },
+    { key: "closed-lost", label: "Lost", color: "bg-red-400" },
+  ];
+  const maxStageCount = Math.max(1, ...stages.map((s) => stageMap[s.key] ?? 0));
 
   return (
     <div className="space-y-8">
@@ -38,21 +66,21 @@ export default async function DashboardPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/workflows"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors"
         >
           <Plus className="size-4" />
           New Workflow
         </Link>
         <Link
           href="/leads"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white text-zinc-700 text-sm font-medium px-4 py-2 hover:bg-zinc-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white text-zinc-700 text-sm font-medium px-4 py-2 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 transition-colors"
         >
           <Users className="size-4" />
           View Leads
         </Link>
         <Link
           href="/runs"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white text-zinc-700 text-sm font-medium px-4 py-2 hover:bg-zinc-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white text-zinc-700 text-sm font-medium px-4 py-2 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 transition-colors"
         >
           <Zap className="size-4" />
           View Runs
@@ -61,8 +89,8 @@ export default async function DashboardPage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/workflows" className="block group">
-          <Card className="hover:shadow-md transition-shadow">
+        <Link href="/workflows" className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-5">
               <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
                 <Workflow className="size-5" />
@@ -75,8 +103,8 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/leads" className="block group">
-          <Card className="hover:shadow-md transition-shadow">
+        <Link href="/leads" className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xl">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="flex items-center gap-4 p-5">
               <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
                 <Users className="size-5" />
@@ -102,6 +130,48 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Run health metrics */}
+      {totalRuns > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="hover:shadow-sm transition-shadow">
+            <CardContent className="flex items-center gap-3 p-4">
+              <CheckCircle className="size-5 text-emerald-500 shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-zinc-900">{completedRuns}</p>
+                <p className="text-xs text-zinc-500">Completed</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-sm transition-shadow">
+            <CardContent className="flex items-center gap-3 p-4">
+              <XCircle className="size-5 text-red-500 shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-zinc-900">{failedRuns}</p>
+                <p className="text-xs text-zinc-500">Failed</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-sm transition-shadow">
+            <CardContent className="flex items-center gap-3 p-4">
+              <Clock className="size-5 text-amber-500 shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-zinc-900">{queuedRuns}</p>
+                <p className="text-xs text-zinc-500">Queued</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-sm transition-shadow">
+            <CardContent className="flex items-center gap-3 p-4">
+              <Zap className="size-5 text-blue-500 shrink-0" />
+              <div>
+                <p className="text-lg font-semibold text-zinc-900">{runningRuns}</p>
+                <p className="text-xs text-zinc-500">Running</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Two-column: Recent runs + Worker health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -122,8 +192,8 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-2">
               {recentRuns.map((run) => (
-                <Link key={run.id} href={`/runs`}>
-                  <Card className="hover:shadow-sm transition-shadow">
+                <Link key={run.id} href={`/runs`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl">
+                  <Card className="hover:shadow-sm transition-shadow cursor-pointer">
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-zinc-800 truncate">
@@ -153,6 +223,38 @@ export default async function DashboardPage() {
           <WorkerStatusCard orgSlug={org.slug} />
         </div>
       </div>
+
+      {/* Lead pipeline */}
+      {leadCount > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="size-4 text-zinc-400" />
+            <h3 className="text-sm font-semibold text-zinc-800">Lead Pipeline</h3>
+          </div>
+          <Card>
+            <CardContent className="p-5">
+              <div className="space-y-2">
+                {stages.map((stage) => {
+                  const count = stageMap[stage.key] ?? 0;
+                  const width = (count / maxStageCount) * 100;
+                  return (
+                    <div key={stage.key} className="flex items-center gap-3">
+                      <span className="text-xs text-zinc-600 w-20 shrink-0">{stage.label}</span>
+                      <div className="flex-1 h-5 bg-zinc-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${stage.color} rounded-full transition-all duration-500`}
+                          style={{ width: `${Math.max(width, count > 0 ? 8 : 0)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-zinc-500 w-6 text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
