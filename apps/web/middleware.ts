@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyToken, extractJti } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isTokenRevoked } from "@/lib/token-blacklist";
 
@@ -35,6 +35,24 @@ export async function middleware(request: NextRequest) {
     // Carry over rate limit headers on allowed responses too
     if (pathname.startsWith("/api/auth/")) {
       return response;
+    }
+  }
+
+  // Redirect authenticated users from landing page to dashboard
+  if (pathname === "/") {
+    const token = request.cookies.get("session")?.value;
+    if (token) {
+      const payload = await verifyToken(token);
+      if (payload) {
+        if (payload.jti) {
+          const revoked = await isTokenRevoked(payload.jti);
+          if (!revoked) {
+            return NextResponse.redirect(new URL("/workflows", request.url));
+          }
+        } else {
+          return NextResponse.redirect(new URL("/workflows", request.url));
+        }
+      }
     }
   }
 
