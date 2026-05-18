@@ -3,6 +3,7 @@ import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { createLeadSchema } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const session = await getSession();
@@ -88,11 +89,12 @@ export async function POST(request: Request, { params }: { params: { slug: strin
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { name, email, stage } = await request.json();
-
-  if (!name || typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const body = await request.json();
+  const parsed = createLeadSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid input" }, { status: 400 });
   }
+  const { name, email, stage, tags } = parsed.data;
 
   const lead = await prisma.$transaction(async (tx) => {
     const l = await tx.lead.create({
@@ -100,7 +102,8 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         organizationId: membership.organizationId,
         name,
         email,
-        stage: stage || "new",
+        stage,
+        tags: tags || [],
       },
     });
 

@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -17,54 +16,48 @@ export default function RegisterPage() {
     setError("");
     setVerifyUrl("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error || "Registration failed");
-        setLoading(false);
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || "Registration failed"); setLoading(false); return; }
       if (data.requiresVerification && data.verifyUrl) {
         setVerifyUrl(data.verifyUrl);
-        toast.info("Verification link generated");
+        toast.info("Verification email sent — check your inbox");
       }
-    } catch {
-      setError("Network error");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("Network error — please try again"); }
+    finally { setLoading(false); }
   }
 
   return (
-    <div className="w-full">
-      <div className="rounded-xl border border-zinc-200/60 bg-white shadow-card p-8">
+    <div className="w-full max-w-sm mx-auto animate-slide-up">
+      <div className="glass-card p-8 sm:p-10 rounded-2xl">
         <div className="text-center mb-8">
-          <div className="inline-flex size-10 rounded-lg bg-blue-600 items-center justify-center text-white font-bold text-sm mb-4">
+          <Link href="/" className="inline-flex size-11 rounded-2xl bg-accent items-center justify-center text-white font-bold text-lg shadow-sm shadow-accent/25 mb-5 hover:shadow-md hover:shadow-accent/30 transition-shadow duration-300">
             O
-          </div>
-          <h1 className="text-lg font-semibold text-zinc-900">Create an account</h1>
-          <p className="text-sm text-zinc-500 mt-1">Get started with OpsFlow.</p>
+          </Link>
+          <h1 className="text-xl font-bold tracking-tight text-text">Create an account</h1>
+          <p className="text-sm text-text-secondary mt-1.5">Start automating with OpsFlow</p>
         </div>
 
         {verifyUrl ? (
-          <div className="space-y-4">
-            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-4 text-center">
-              <p className="text-sm font-medium text-emerald-800 mb-2">Check your email</p>
-              <p className="text-xs text-emerald-600 mb-3">
-                We sent a verification link to your email. Click it to complete registration. The link expires in 10 minutes.
+          <div className="space-y-4 animate-scale-in">
+            <div className="rounded-2xl bg-success-soft border border-success/20 p-6 text-center">
+              <div className="size-12 rounded-full bg-success flex items-center justify-center mx-auto mb-3">
+                <svg className="size-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-success mb-1">Check your email</h3>
+              <p className="text-xs text-text-secondary mb-4">
+                We sent a verification link to <strong>{email}</strong>. Click it to complete registration. Expires in 10 minutes.
               </p>
-              <p className="text-xs text-zinc-400 mt-3">
+              <p className="text-xs text-text-muted">
                 No email?{" "}
-                <a href={verifyUrl} className="text-blue-600 underline hover:text-blue-700">
+                <a href={verifyUrl} className="text-accent font-medium hover:text-accent-hover transition-colors">
                   Click here to verify manually
                 </a>
               </p>
@@ -73,67 +66,49 @@ export default function RegisterPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-zinc-700 mb-1.5">
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
-                className="block w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                required
-              />
+              <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-1.5">Full name</label>
+              <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="Jane Smith"
+                className="block w-full rounded-xl border border-border bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all duration-200"
+                required />
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-zinc-700 mb-1.5">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="block w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                required
-                autoComplete="email"
-              />
+              <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-1.5">Email address</label>
+              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="jane@company.com"
+                className="block w-full rounded-xl border border-border bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all duration-200"
+                required autoComplete="email" />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-zinc-700 mb-1.5">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1.5">Password</label>
+              <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="block w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                required
-                minLength={8}
-                autoComplete="new-password"
-              />
+                className="block w-full rounded-xl border border-border bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all duration-200"
+                required minLength={8} autoComplete="new-password" />
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2.5 text-sm text-red-700">
+              <div className="rounded-xl bg-danger-soft border border-danger/20 px-4 py-3 text-sm text-danger animate-scale-in">
                 {error}
               </div>
             )}
 
-            <Button type="submit" loading={loading} className="w-full">
-              {loading ? "Creating account..." : "Create account"}
-            </Button>
+            <button type="submit" disabled={loading}
+              className="w-full rounded-xl bg-accent text-white text-sm font-semibold py-2.5 hover:bg-accent-hover disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 shadow-sm shadow-accent/25 hover:shadow-md hover:shadow-accent/30 active:scale-[0.98]">
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Creating account...
+                </span>
+              ) : "Create account"}
+            </button>
           </form>
         )}
       </div>
 
-      <p className="text-center text-sm text-zinc-500 mt-6">
+      <p className="text-center text-sm text-text-muted mt-6">
         Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+        <Link href="/login" className="text-accent font-semibold hover:text-accent-hover transition-colors">
           Sign in
         </Link>
       </p>

@@ -2,20 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@opsflow/db";
 import { hashPassword } from "@/lib/password";
 import { getRequestContext, logInfo, logError, logWarn } from "@/lib/logger";
+import { registerSchema } from "@/lib/validation";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
   const ctx = getRequestContext(request);
   try {
-    const { email, password, name } = await request.json();
-
-    if (!email || !password || !name) {
-      return NextResponse.json({ error: "Email, password, and name are required" }, { status: 400 });
+    const body = await request.json();
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid input" }, { status: 400 });
     }
-
-    if (password.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
-    }
+    const { email, password, name } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -98,7 +96,7 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     logError(ctx, "Register error", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Don't leak internal error details to the client
+    return NextResponse.json({ error: "Registration failed. Please try again later." }, { status: 500 });
   }
 }

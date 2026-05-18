@@ -3,6 +3,7 @@ import { Worker, Job } from "bullmq";
 import { prisma } from "@opsflow/db";
 import { connection, workflowQueue } from "./queue";
 import { sendEmail } from "./email";
+import { callDeepSeekJSON } from "./ai";
 
 interface NodeShape {
   id: string;
@@ -134,7 +135,7 @@ function unitToMs(duration: number, unit: string): number {
   }
 }
 
-// ── Execute a single node (mock logic) ───────────────────────────────
+// ── Execute a single node ────────────────────────────────────────────
 async function executeNode(
   node: NodeShape,
   input: Record<string, unknown>,
@@ -146,6 +147,7 @@ async function executeNode(
     case "action": {
       const action = (node.config.action as string) ?? "unknown";
 
+      // ── send_email: real Resend delivery ──────────────────────────
       if (action === "send_email") {
         if (!process.env.RESEND_API_KEY) {
           console.warn("send_email skipped: RESEND_API_KEY not configured");
@@ -160,11 +162,123 @@ async function executeNode(
         };
       }
 
-      return {
-        action,
-        result: `executed ${action}`,
-        executedAt: new Date().toISOString(),
-      };
+      // ── score_lead: call DeepSeek to score a lead ─────────────────
+      if (action === "score_lead") {
+        const lead = (input.lead as Record<string, unknown>) || input;
+        const prompt = `Score this lead for conversion likelihood:\nName: ${lead.name || "Unknown"}\nEmail: ${lead.email || "N/A"}\nStage: ${lead.stage || "new"}\nTags: ${lead.tags ? JSON.stringify(lead.tags) : "none"}\n\nPipeline: new → qualified → proposal → negotiation → closed-won / closed-lost. Return a JSON object with score (0-100), label ("hot"|"warm"|"cold"), reason (1-2 sentences), nextAction (string).`;
+        const scoring = await callDeepSeekJSON<{ score: number; label: string; reason: string; nextAction: string }>(
+          prompt,
+          "You are a lead scoring AI. Respond with JSON only.",
+          { temperature: 0.3 },
+        );
+        return {
+          action: "score_lead",
+          score: Math.max(0, Math.min(100, Math.round(scoring.score ?? 0))),
+          label: scoring.label || "warm",
+          reason: scoring.reason || "No analysis available",
+          nextAction: scoring.nextAction || "Review lead",
+        };
+      }
+
+      // ── update_lead: update stage/tags in DB ─────────────────────
+      if (action === "update_lead") {
+        const leadId = (input.leadId as string) || ((input.lead as Record<string, unknown>)?.id as string);
+        if (!leadId) return { action: "update_lead", skipped: true, reason: "No leadId in run input" };
+
+        const updates: Record<string, unknown> = {};
+        if (node.config.stage) updates.stage = node.config.stage;
+        if (node.config.tags) {
+          // Support both array ["tag1"] and comma-separated string "tag1, tag2"
+          updates.tags = Array.isArray(node.config.tags)
+            ? node.config.tags
+            : String(node.config.tags).split(",").map((t: string) => t.trim()).filter(Boolean);
+        }
+
+        if (Object.keys(updates).length === 0) {
+          return { action: "update_lead", skipped: true, reason: "No stage or tags specified in config" };
+        }
+
+        const updated = await prisma.lead.update({
+          where: { id: leadId as string },
+          data: updates,
+        });
+        return {
+          action: "update_lead",
+          leadId: updated.id,
+          stage: updated.stage,
+          tags: updated.tags,
+        };
+      }
+
+      // ── create_lead: create a new lead in the org ────────────────
+      if (action === "create_lead") {
+        const orgId = (input._orgId as string) || (input.organizationId as string);
+        if (!orgId) return { action: "create_lead", skipped: true, reason: "No _orgId in run input" };
+
+        const lead = await prisma.lead.create({
+          data: {
+            organizationId: orgId,
+            name: (node.config.name as string) || "New Lead",
+            email: (node.config.email as string) || null,
+            stage: (node.config.stage as string) || "new",
+            tags: Array.isArray(node.config.tags)
+              ? (node.config.tags as string[])
+              : node.config.tags
+                ? String(node.config.tags).split(",").map((t: string) => t.trim()).filter(Boolean)
+                : [],
+          },
+        });
+        return {
+          action: "create_lead",
+          leadId: lead.id,
+          name: lead.name,
+          email: lead.email,
+          stage: lead.stage,
+        };
+      }
+
+      // ── compose_email: AI generates email, optionally sends ──────
+      if (action === "compose_email") {
+        const emailType = (node.config.emailType as string) || "follow-up";
+        const lead = (input.lead as Record<string, unknown>) || input;
+
+        const composePrompt = `Compose a "${emailType}" email for:\nName: ${lead.name || "there"}\nEmail: ${lead.email || "N/A"}\nStage: ${lead.stage || "new"}\nTags: ${lead.tags ? JSON.stringify(lead.tags) : "none"}\n\nWrite a personalized ${emailType} B2B sales email with subject line and body (plain text, greeting + 2-3 paragraphs + sign-off). Return JSON: { "subject": "...", "body": "..." }`;
+        const composed = await callDeepSeekJSON<{ subject: string; body: string }>(
+          composePrompt,
+          "You are an expert B2B sales email copywriter. Respond with JSON only.",
+          { temperature: 0.7 },
+        );
+
+        let sent = false;
+        if (node.config.send === true || node.config.send === "true") {
+          if (!process.env.RESEND_API_KEY) {
+            console.warn("compose_email: send=true but RESEND_API_KEY not configured");
+          } else {
+            const to = (node.config.to as string) || (lead.email as string);
+            if (to) {
+              await sendEmail({ action: "send_email", to, subject: composed.subject, body: composed.body }, input);
+              sent = true;
+            }
+          }
+        }
+
+        return {
+          action: "compose_email",
+          emailType,
+          subject: composed.subject,
+          body: composed.body,
+          sent,
+        };
+      }
+
+      // ── slack_notify / http_request: not configured ──────────────
+      if (action === "slack_notify" || action === "http_request") {
+        console.warn(`${action} skipped: integration not configured`);
+        return { action, skipped: true, reason: `${action} integration not configured` };
+      }
+
+      // Unknown action — log and return
+      return { action, result: `executed ${action}`, executedAt: new Date().toISOString() };
     }
 
     case "condition":

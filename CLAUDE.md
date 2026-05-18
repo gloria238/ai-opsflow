@@ -76,10 +76,13 @@ pnpm --filter @opsflow/db generate # Regenerate Prisma client
 pnpm --filter @opsflow/db push     # Push schema to DB
 pnpm --filter @opsflow/db prisma studio  # Open Prisma Studio
 
-# Testing (all run from apps/web)
-pnpm --filter @opsflow/web test              # Phase 1: 32 unit tests (vitest, ~2s)
-pnpm --filter @opsflow/web test:integration  # Phase 2: 82 API integration tests (needs pnpm dev running)
-pnpm --filter @opsflow/web test:e2e          # Phase 3: Playwright E2E (needs Chromium: npx playwright install chromium)
+# Testing
+pnpm --filter @opsflow/web test              # 67 unit tests (vitest, ~2s): auth, password, permissions, rate-limit, AI prompts, feature flags
+pnpm --filter @opsflow/worker test            # 18 unit tests (vitest): topologicalSort, evaluateCondition, unitToMs
+pnpm --filter @opsflow/web test:integration  # 105 API integration tests (needs pnpm dev running): auth, workflows, leads, members, org-settings, audit-log, templates, export/import, api-keys
+pnpm --filter @opsflow/web test:e2e          # Playwright E2E (needs Chromium: npx playwright install chromium)
+
+# Total: 85 unit tests + 105 integration tests + 4 E2E specs
 
 # Add dependencies
 pnpm --filter @opsflow/web add <pkg>
@@ -146,26 +149,37 @@ packages/
 ### Key files
 
 ```
+apps/web/app/page.tsx                — Public landing page (hero, features, CTAs)
+apps/web/app/(dashboard)/page.tsx    — Dashboard with metrics, pipeline chart, onboarding card
+apps/web/app/(dashboard)/templates/  — Workflow template marketplace (browse + install)
+apps/web/app/(dashboard)/docs/       — API documentation page (38 endpoints)
+apps/web/app/(dashboard)/settings/api-keys/ — API key management
+apps/web/app/(dashboard)/onboarding-card.tsx — 3-step onboarding wizard
 apps/web/lib/auth.ts                — JWT sign/verify (jose), Edge-compatible, no fallback secret
 apps/web/lib/password.ts            — bcrypt hash/verify (10 rounds), Node.js only (not Edge)
 apps/web/lib/session.ts             — Server-side session from JWT cookie
 apps/web/lib/audit.ts               — Audit log write helper (used in all mutation endpoints)
 apps/web/lib/permissions.ts         — 10 RBAC permissions + role matrix (PERMISSION_MAP exported for tests)
 apps/web/lib/rate-limit.ts          — Upstash Redis sliding-window rate limiter (in-memory fallback)
-apps/web/lib/ai.ts                  — DeepSeek API client
-apps/web/lib/feature-flags.ts       — Env-based feature toggles
+apps/web/lib/ai.ts                  — DeepSeek API client (callDeepSeek, callDeepSeekJSON, extractBalancedJSON)
+apps/web/lib/feature-flags.ts       — Env-based feature toggles (8 flags: 6 AI + tables + realtime)
 apps/web/lib/logger.ts              — Structured JSON logging (PII-safe)
-apps/web/lib/prompts.ts             — AI system prompts + builders
-apps/web/middleware.ts              — JWT guard + Redis rate limiting (100 req/min per IP)
+apps/web/lib/prompts.ts             — AI system prompts + builders (6 prompt pairs: suggest, generate, score, analyze, compose, classify)
+apps/web/middleware.ts              — JWT guard + Redis rate limiting (100 req/min per IP) + webhook bypass
+apps/web/components/providers/theme-provider.tsx — Dark mode provider with flash prevention
+apps/web/components/providers/theme-toggle.tsx   — Dark/light toggle button
+apps/web/components/nav/mobile-nav.tsx           — Mobile hamburger menu with slide-out drawer
+apps/web/components/leads/import-button.tsx      — CSV import dialog with file upload
 apps/web/vitest.config.ts           — Unit test config (excludes integration/E2E files)
 apps/web/vitest.integration.config.ts — Integration test config (sequential file execution)
 apps/web/playwright.config.ts       — Playwright E2E config (Chromium, auto-starts dev server)
 apps/web/lib/__tests__/             — 4 unit test files (32 tests) + helpers + 7 integration test files (82 tests)
 apps/web/e2e/                       — 4 Playwright E2E specs
 apps/worker/src/queue.ts            — Direct Redis connection + BullMQ Queue
-apps/worker/src/email.ts            — Resend email sender + {{variable}} template resolver
-apps/worker/src/index.ts            — Worker: DAG execution, email skip guard, retry, condition eval, delay, HTTP healthcheck
-packages/db/prisma/schema.prisma    — All 10 models with @opsflow schema
+apps/worker/src/email.ts            — Resend email sender + {{variable}} template resolver + open/click tracking
+apps/worker/src/index.ts            — Worker: DAG execution, real actions (score_lead/update_lead/create_lead/compose_email), retry, condition eval, delay, HTTP healthcheck
+apps/worker/src/ai.ts               — DeepSeek client for worker (mirrors web, self-contained)
+packages/db/prisma/schema.prisma    — 10 models + apiKeys JSON field on Organization
 packages/db/index.ts                — PrismaClient singleton export
 packages/db/seed-production.ts      — 3 sellable workflow templates (email→update_lead) + 5 demo leads
 packages/db/seed-demo.ts            — Client demo: Acme Corp, 15 leads, 3 WFs, 10 runs, metrics
@@ -174,19 +188,24 @@ packages/db/seed-verify-alice.ts    — Mark alice@example.com emailVerified=tru
 packages/db/clean-demo-org.ts       — FK-safe org cleanup before re-seed
 ```
 
-### State of the project (2026-05-17)
+### State of the project (2026-05-18)
 
 - **Phase 7 complete: Security Hardening**. 10 vulnerabilities fixed.
-- **Phase 8 complete: Testing (3 layers)**. 32 unit + 82 integration + 4 E2E specs = **114 tests**.
-- **Phase 9: Polish**. Dashboard with run metrics, lead pipeline chart, focus states, reduced-motion support, Resend verification emails.
-- **~8,000 lines** across ~165 files. 31 API routes + SSE streaming + 10 loading.tsx + 3 sellable templates + demo seed.
-- Web app: ✅ Vercel (JWT login, email verification via Resend, dashboard, workflows, leads, runs, settings, members, audit log).
-- Worker: ✅ Railway (BullMQ + Redis, DAG execution, healthcheck, send_email skip guard).
-- Email: ✅ Resend verification emails sent on registration. `send_email` in worker gracefully skips if not configured.
-- Templates: 3 production workflows (all use CRM actions, zero email dependency).
-- Demo: `pnpm seed-demo` → Acme Corp with 15 leads, 3 WFs, 10 runs (6 completed). Login: demo@acmecorp.com / demo123456.
-- UX: breadcrumb nav, card dashboard, run metrics, lead pipeline bars, focus-visible rings, prefers-reduced-motion, cursor-pointer on cards.
-- Known: pgBouncer incompatible with interactive `$transaction` — PUT route uses sequential ops.
+- **Phase 8 complete: Testing (3 layers)**. 85 unit + 105 integration + 4 E2E specs.
+- **Phase 9: Polish**. Dashboard metrics, pipeline chart, focus states, reduced-motion, Resend emails.
+- **Phase 10: Productization & AI Enhancement**. AI prompts fixed, 5 worker actions (no stubs), 3 new AI endpoints, landing page, dark mode, CSV import/export, template marketplace, onboarding, API keys, API docs, mobile nav, email tracking.
+- **Phase 11: Security v2**. Timing-safe webhook, Zod validation (16 schemas), JWT revocation (Redis blacklist), error sanitization.
+- **Phase 12: Commercial UI/UX**. Plus Jakarta Sans font, Liquid Glass design system, glass-morphism sidebar/cards, Bento grid dashboard, premium login/register/landing, refined shadows/transitions/animations.
+- **~9,500 lines** across ~195 files. 38 API routes + SSE + webhook trigger.
+- Web app: ✅ Vercel (JWT + API key auth, email verification, glass UI, dashboard, workflows, leads, runs, settings, members, audit log, templates, docs, api-keys).
+- Worker: ✅ Railway (BullMQ + Redis, DAG execution, real DeepSeek scoring/compose_email/update_lead/create_lead, Resend tracking, healthcheck).
+- Email: ✅ Resend verification + AI-composed emails with open/click tracking. Template variables {{lead.name}}, {{lead.email}}.
+- Templates: 3 workflow templates browsable in-app (`/templates`). One-click install.
+- Demo: `pnpm seed-demo` → Acme Corp (15 leads, 3 WFs, 10 runs). Login: demo@acmecorp.com / demo123456.
+- Landing: Public page at `/` with glass navbar, premium hero, features, CTAs.
+- UX: Plus Jakarta Sans font, glass-morphism sidebar/cards, dark mode, mobile nav, breadcrumbs, Bento grid dashboard, onboarding wizard, skeleton loaders, smooth 200ms transitions, focus-visible rings, prefers-reduced-motion.
+- Security: Timing-safe webhook comparison, Zod input validation, JWT revocation via Redis, error sanitization, SHA256 API key hashing, CSP/HSTS, rate limiting.
+- Known: pgBouncer incompatible with interactive `$transaction`. API key Bearer auth pending (Edge runtime constraint).
 - GitHub push via Desktop. `npx vercel --prod --cwd apps/web` for Vercel deploy.
 
 ### Seed scripts reference

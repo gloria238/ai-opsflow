@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar } from "@/components/ui/avatar";
+import { LogOut, Settings } from "lucide-react";
 import { useCallback } from "react";
 
 interface UserMenuProps {
@@ -22,17 +23,28 @@ export function UserMenu({ user, org }: UserMenuProps) {
     <div className="relative">
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <div className="flex items-center gap-2.5 cursor-pointer rounded-lg px-2 py-1.5 hover:bg-zinc-100 transition-colors">
+          <div className="flex items-center gap-2.5 cursor-pointer rounded-xl px-2.5 py-1.5 hover:bg-bg-subtle transition-all duration-200">
             <Avatar name={user.name} />
-            <div className="text-left">
-              <div className="text-sm font-medium text-zinc-800 leading-tight">{user.name}</div>
-              <div className="text-[11px] text-zinc-400 leading-tight">{org.name}</div>
+            <div className="text-left hidden sm:block">
+              <div className="text-sm font-semibold text-text leading-tight tracking-tight">{user.name}</div>
+              <div className="text-xs text-text-muted leading-tight">{org.name}</div>
             </div>
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <div className="px-3 py-2 text-xs text-zinc-400 border-b border-zinc-100">{user.email}</div>
-          <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
+          <div className="px-3 py-2 text-xs text-text-muted border-b border-border">
+            <p className="font-medium text-text truncate">{user.name}</p>
+            <p className="truncate">{user.email}</p>
+          </div>
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
+            <Settings className="size-3.5 mr-2 text-text-muted" />
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="size-3.5 mr-2" />
+            Sign out
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

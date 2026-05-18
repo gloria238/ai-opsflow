@@ -37,6 +37,7 @@ model Organization {
   id          String       @id @default(uuid())
   name        String
   slug        String       @unique
+  apiKeys     Json?
   memberships Membership[]
   leads       Lead[]
   leadActivities LeadActivity[]

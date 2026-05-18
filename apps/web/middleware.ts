@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, extractJti } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isTokenRevoked } from "@/lib/token-blacklist";
 
-const publicPaths = ["/login", "/register"];
+const publicPaths = ["/", "/login", "/register", "/docs"];
 const authApiPaths = ["/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/auth/verify"];
 
 export async function middleware(request: NextRequest) {
@@ -37,8 +38,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow public paths and auth API routes
-  if (publicPaths.some((p) => pathname === p) || authApiPaths.some((p) => pathname.startsWith(p))) {
+  // Allow public paths, auth API routes, and webhook triggers
+  if (
+    publicPaths.some((p) => pathname === p) ||
+    authApiPaths.some((p) => pathname.startsWith(p)) ||
+    pathname.match(/^\/api\/orgs\/[^/]+\/workflows\/[^/]+\/webhook$/)
+  ) {
     return NextResponse.next();
   }
 
@@ -56,6 +61,16 @@ export async function middleware(request: NextRequest) {
   const payload = await verifyToken(token);
   if (!payload) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Check if token has been revoked (logout, password change, etc.)
+  if (payload.jti) {
+    const revoked = await isTokenRevoked(payload.jti);
+    if (revoked) {
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.set("session", "", { httpOnly: true, secure: true, sameSite: "lax", maxAge: 0, path: "/" });
+      return response;
+    }
   }
 
   return NextResponse.next();

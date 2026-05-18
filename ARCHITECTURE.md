@@ -1,7 +1,7 @@
 # OpsFlow AI — Architecture Document
 
 > Multi-tenant AI Workflow CRM for async automation, lead operations, and workflow orchestration.
-> ~7,000 lines across ~150 files. 31 API routes + SSE streaming. 3 sellable templates.
+> ~9,000 lines across ~190 files. 38 API routes + SSE + webhook trigger. 3 sellable templates + template marketplace.
 
 ---
 
@@ -21,6 +21,7 @@
 12. [前端架构](#12-前端架构)
 13. [部署架构](#13-部署架构)
 14. [安全态势](#14-安全态势)
+15. [产品化功能](#15-产品化功能)
 
 ---
 
@@ -891,16 +892,102 @@ Server Components (RSC)         Client Components
 | SQL 注入 | Prisma 参数化查询 |
 | CSRF | SameSite=Lax cookies |
 
-### 14.2 待改进
+### 14.2 安全加固 v2 (Phase 11)
+
+| 项目 | 状态 |
+|------|------|
+| Webhook 时序安全 | ✅ `crypto.timingSafeEqual()` 替代 `!==` |
+| Zod 输入验证 | ✅ 16 个 schema，覆盖所有变更端点 |
+| JWT 撤销 | ✅ Redis 黑名单，登出时撤销，中间件检查 `jti` |
+| 错误信息防泄露 | ✅ 导入/注册路由仅返回通用错误消息 |
+| 邮件格式验证 | ✅ Zod email 格式检查 |
+| 密码强度 | ✅ 8-128 字符 Zod 验证 |
+| Stage 枚举验证 | ✅ Zod enum 限制为 6 个有效值 |
+| 字符串长度限制 | ✅ 所有字段最大长度限制 |
+
+### 14.3 UI/UX 升级 (Phase 12)
+
+- **字体**: Inter → Plus Jakarta Sans (300-700 weight)
+- **设计系统**: Liquid Glass + Dimensional Layering
+- **色彩**: 精炼 slate 调色板，16 个 CSS 自定义属性，亮/暗双模式
+- **效果**: `glass` / `glass-card` 组件，`backdrop-filter: blur(16px) saturate(180%)`
+- **动画**: 200-300ms ease-out 过渡，`active:scale-[0.97]`，6 级阴影系统
+- **组件**: Bento grid 仪表盘，glass sidebar，精炼输入框/按钮，骨架加载器
+
+### 14.4 待改进 (更新)
 
 | 项目 | 优先级 | 说明 |
 |------|--------|------|
-| PostgreSQL RLS | 低 | 作为纵深防御的第二层 |
-| 邮箱验证码 (Resend) | 中 | 当前 Resend 未配置，验证链接显示在页面上 |
-| CSRF Token | 低 | SameSite=Lax 在旧浏览器上不生效 |
-| Dependabot/审计 | 中 | 定期漏洞扫描 |
-| 自动化测试 | 高 | 零测试文件 |
-| 日志外发 | 中 | 当前仅 console，建议接入外部日志服务 |
+| PostgreSQL RLS | 低 | App-layer 隔离一致，作为纵深防御的第二层 |
+| API Key Bearer 认证 | 中 | 中间件 Edge Runtime 限制 |
+| CSRF Token | 低 | SameSite=Lax 作为主要防御 |
+| 依赖扫描 | 中 | Dependabot/Snyk 自动化 |
+| Stripe 计费 | 高 | 未实施 |
+| 日志外发 | 中 | 当前仅 console |
+
+---
+
+## 15. 产品化功能
+
+### 15.1 落地页
+
+`/` 公开路由，无认证要求。包含：
+- Hero 区域（AI 驱动工作流自动化）
+- 6 大功能卡片（可视化构建器、AI 运营、企业安全、智能邮件、管道分析、开发者友好）
+- 三步操作说明（连接线索 → 构建工作流 → 自动分析）
+- CTA 区域和 Footer
+
+### 15.2 深色模式
+
+- Tailwind `darkMode: "class"` 策略
+- `.dark` CSS 变量覆盖 14 个设计令牌
+- `ThemeProvider` 带 `<script>` 标签的闪烁预防
+- 系统偏好检测 `prefers-color-scheme: dark`
+- 侧边栏和导航栏中的 `ThemeToggle`
+- 所有 UI 表面的深色变体：仪表板布局、侧边栏、设置选项卡、表格
+
+### 15.3 线索导入/导出
+
+- **导出**: `GET /api/orgs/:slug/leads/export` → CSV 下载，包含姓名、邮箱、阶段、标签、创建时间
+- **导入**: `POST /api/orgs/:slug/leads/import` → 接受 `{ rows: [...] }`，CSV 解析支持引号字段，最多 500 行，返回 `{ imported, skipped, errors }`
+- **UI**: 线索页面上的导入按钮 → 文件上传对话框。导出链接 → 直接下载
+
+### 15.4 工作流模板市场
+
+- **页面**: `/templates` — 浏览 3 个预构建模板（线索资格认证、冷外联跟进、试用用户培育）
+- **API**: `GET /api/orgs/:slug/templates` 列出模板；`POST` 通过一次操作安装模板 → 创建包含节点/边的工作流 + 版本
+- 每个模板显示节点类型计数，一键安装，安装后重定向到工作流构建器
+
+### 15.5 入职向导
+
+- 新组织（0 个线索 + 0 个工作流）的仪表板欢迎卡片
+- 3 步引导：添加线索 → 浏览模板 → 触发工作流
+- 每个步骤都链接到相关页面。可关闭。仅当 `workflowCount === 0 && leadCount === 0` 时显示
+
+### 15.6 API 密钥
+
+- **模型**: `Organization.apiKeys` JSON 字段存储 `[{ id, name, prefix, hash, createdAt }]`
+- **API**: `GET/POST /api/orgs/:slug/api-keys`，`DELETE /api/orgs/:slug/api-keys/:keyId`
+- **UI**: 设置 → API 密钥选项卡。所有者可以创建/删除。创建时显示纯文本密钥（仅一次）
+- **认证**: 持有者令牌认证就绪（Edge 运行时 Prisma 约束的中间件集成待定）
+
+### 15.7 API 文档
+
+- 公开页面 `/docs` 列出了按类别组织的所有 38 个端点
+- 7 个类别：认证、组织、线索、工作流、模板、成员与设置、AI
+- 每个端点显示：HTTP 方法（带颜色编码）、路径、认证类型、描述
+
+### 15.8 移动端响应式
+
+- 移动端汉堡菜单（`MobileNav` 组件），带滑出抽屉
+- 侧边栏在 `lg:` 断点隐藏，由抽屉替代
+- 覆盖层背景 + 点击外部关闭
+- 响应式网格布局：`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+
+### 15.9 邮件追踪
+
+- 所有通过 Resend 发送的邮件启用 `trackOpens: true` 和 `trackClicks: true`
+- Resend 仪表板中可查看打开率和点击率指标
 
 ---
 
@@ -923,12 +1010,12 @@ npx vercel --prod --cwd apps/web   # 部署到 Vercel 生产环境
 
 | 指标 | 数值 |
 |------|------|
-| 总代码行数 | ~7,000 |
-| 文件数 | ~150 |
-| API 端点 | 31 + SSE |
+| 总代码行数 | ~9,000 |
+| 文件数 | ~190 |
+| API 端点 | 38 + SSE + Webhook |
 | 数据库模型 | 10 + 1 enum |
 | RBAC 权限 | 10 项 |
-| AI 功能 | 4 个 |
+| AI 功能 | 7 个 (生成、建议、评分、分析、撰写、分类、管道洞察) |
 | 部署平台 | 4 个 (Vercel, Railway, Supabase, Upstash) |
 | 外部集成 | DeepSeek, Resend, BullMQ, jose, bcrypt |
 
@@ -943,12 +1030,16 @@ npx vercel --prod --cwd apps/web   # 部署到 Vercel 生产环境
 ✅ 可视化画布 (React Flow)
 ✅ DAG 执行引擎 (Kahn 拓扑排序)
 ✅ 异步队列 (BullMQ + Redis)
-✅ AI 集成 (DeepSeek 4 个端点)
+✅ AI 集成 (DeepSeek 7 个端点: 生成/建议/评分/分析/撰写/分类/管道洞察)
 ✅ 实时通信 (SSE)
-✅ 邮件系统 (Resend + 模板引擎)
+✅ 邮件系统 (Resend + 模板引擎 + AI 撰写 + 打开/点击追踪)
 ✅ 审计日志 (不可变审计追踪)
 ✅ 安全加固 (CSP/HSTS/限流/PII保护/邮箱验证)
 ✅ DevOps (Vercel + Railway + Supabase)
+✅ 落地页 + 深色模式 + 移动端响应式
+✅ CSV 导入/导出 + 模板市场 + 入职向导
+✅ API 密钥管理 + API 文档 (38 个端点)
+✅ Webhook 触发器 (外部 cron/服务集成)
 ```
 
 **工程水平评估: Senior Full-Stack Engineer**
@@ -1009,7 +1100,7 @@ apps/web/
 ### 集成测试依赖
 
 - `pnpm seed-members <org-slug>` — 测试账号: admin/operator/viewer@opsflow.test (密码: test123456)
-- `alice@example.com` — owner 角色 (密码由用户设置)
+- `alice@example.com` — owner 角色 密码: [Aa7!GzwF7X_W)LB$OSkKkY3x]
 - 测试用 `fileParallelism: false` 顺序执行 (共享同一 org)
 
 ---

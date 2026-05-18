@@ -1,6 +1,6 @@
 # OpsFlow AI — Progress Report
 
-> Last updated: 2026-05-17 (Phase 8 complete — Automated Testing)
+> Last updated: 2026-05-18 (Phase 12 complete — Commercial UI/UX Upgrade)
 > Project: Multi-tenant AI Workflow CRM
 
 ---
@@ -18,10 +18,13 @@
 | Phase 7: Security Hardening | ✅ Done | 100% |
 | Phase 8: Automated Testing | ✅ Done | 100% |
 | Phase 9: Polish & Demo | ✅ Done | 100% |
+| Phase 10: Productization & AI Enhancement | ✅ Done | 100% |
+| Phase 11: Security Hardening v2 | ✅ Done | 100% |
+| Phase 12: Commercial UI/UX Upgrade | ✅ Done | 100% |
 
-**Total source code:** ~7,500 lines across ~165 files
-**Total tests:** 114 (32 unit + 82 integration + 4 E2E specs ready)
-**API endpoints:** 31 total + SSE stream
+**Total source code:** ~9,500 lines across ~195 files
+**Total tests:** 85 unit (67 web + 18 worker) + 105 integration + 4 E2E specs
+**API endpoints:** 38 total + SSE + webhook trigger
 **Infrastructure:** TanStack Query, SSE, Redis Rate Limiting, Feature Flags, Structured JSON Logging, Resend Email, BullMQ Queue
 **Database tables:** 10 models + 1 enum
 **Templates:** 3 sellable workflows (CRM actions, no email dependency)
@@ -472,11 +475,173 @@ Creates client-ready presentation data:
 
 ---
 
+---
+
+## Phase 10 — Productization & AI Enhancement ✅
+
+> Completed: 2026-05-18
+
+### AI Layer Fixed & Enhanced
+
+| Improvement | Details |
+|-------------|---------|
+| Prompt-Response Mismatch Fixed | `NODE_SUGGESTION_SYSTEM` now returns `{suggestions: [...]}` object matching the API handler expectation (was JSON array) |
+| Anomaly Analysis Fixed | `ANOMALY_ANALYSIS_SYSTEM` and builder now explicitly request JSON output with correct field names |
+| JSON Extraction Robustness | `extractBalancedJSON()` replaces greedy regex — handles nested objects, escaped strings, and arrays |
+| Platform Context Injected | All 4 AI prompts now include full platform context: 8 action types, CRM data model, pipeline stages, condition operators, template variables |
+| AI Email Composition | New `compose-email` API endpoint + worker action — AI writes personalized welcome/follow-up/cold-outreach/re-engagement/proposal emails |
+| AI Email Classification | New `classify-email` API endpoint — classifies intent, sentiment, urgency with suggested action |
+| AI Pipeline Analytics | New `pipeline-insights` endpoint — AI analyzes pipeline health, identifies bottlenecks, predicts conversions |
+
+### Worker Actions Implemented (No More Stubs)
+
+| Action | Before | After |
+|--------|--------|-------|
+| `score_lead` | `"executed score_lead"` stub | Calls DeepSeek AI, returns `{score, label, reason, nextAction}` |
+| `update_lead` | `"executed update_lead"` stub | Updates lead stage/tags in PostgreSQL via Prisma |
+| `create_lead` | `"executed create_lead"` stub | Creates new lead in org via Prisma |
+| `compose_email` | (new) | AI generates email + optionally sends via Resend |
+| `slack_notify` | `"executed slack_notify"` stub | Returns `{skipped, reason}` (no integration) |
+| `http_request` | `"executed http_request"` stub | Returns `{skipped, reason}` (no integration) |
+
+### New AI Endpoints (3 new)
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/orgs/:slug/ai/compose-email` | AI generates personalized email subject + body |
+| `POST /api/orgs/:slug/ai/classify-email` | AI classifies email intent/sentiment/urgency |
+| `GET /api/orgs/:slug/ai/pipeline-insights` | AI analyzes pipeline health and predicts conversions |
+
+### New Triggers & Actions
+
+- **Webhook trigger**: `POST /api/orgs/:slug/workflows/:id/webhook` — no JWT, shared-secret auth. Enables schedule triggers via external cron services.
+- **Score lead (AI)**: Added to action dropdown (was missing)
+- **Compose email (AI)**: New action with email type selector and send toggle
+- **Action config fields**: send_email (to/subject/body), update_lead (stage/tags), create_lead (name/email/stage), compose_email (type/send)
+- **Trigger webhook secret**: Auto-generate button for webhook/schedule triggers
+
+### Productization Features
+
+| Feature | Implementation |
+|---------|---------------|
+| Landing Page | Public marketing site at `/` with hero, 6 features, how-it-works, CTA. No auth required. |
+| Dark Mode | `darkMode: "class"` in Tailwind, `.dark` CSS variables, ThemeProvider with flash prevention script, ThemeToggle in sidebar |
+| CSV Lead Import | File upload + CSV parser + validation. Max 500 rows. Import button on leads page. |
+| CSV Lead Export | Download all leads as CSV with one click |
+| Workflow Template Marketplace | Browse 3 pre-built templates in-app (`/templates`). One-click install to create workflow. |
+| Onboarding Wizard | 3-step welcome card on dashboard for new orgs (leads → templates → trigger) |
+| API Keys | Create/delete API keys in Settings. Stored as hashed JSON on Organization. Bearer token auth ready. |
+| API Docs | `/docs` page lists all 38 API endpoints organized by category with method, path, auth, and description |
+| Mobile Responsiveness | Hamburger menu with slide-out drawer, responsive grid layouts, touch-friendly navigation |
+| Email Tracking | `trackOpens: true, trackClicks: true` on all Resend emails |
+| Sidebar Navigation | Added Templates and API Docs links. Theme toggle at bottom. Active state highlighting for settings tabs. |
+
+### UI Component Updates
+
+- `node-config-panel.tsx` — Conditional config fields per action type, webhook secret generator, 7 action types in dropdown
+- `action-node.tsx` — Added `score_lead` and `compose_email` display labels
+- `sidebar.tsx` — Templates link + ThemeToggle at bottom + dark mode classes
+- `settings/layout.tsx` — Converted to client component with active tab highlighting + API Keys tab
+- `dashboard/layout.tsx` — Dark mode support for all surfaces + mobile hamburger
+- `layout.tsx` — ThemeProvider wrapper + flash-prevention script
+
+### Database Schema Change
+
+- `Organization.apiKeys` — New `Json?` field for storing API key objects
+
+### New Files Created (12)
+
+- `apps/web/app/page.tsx` — Landing page
+- `apps/web/app/(dashboard)/templates/page.tsx` + `templates-client.tsx` — Template marketplace
+- `apps/web/app/(dashboard)/docs/page.tsx` — API documentation
+- `apps/web/app/(dashboard)/settings/api-keys/page.tsx` + `api-keys-client.tsx` — API key management
+- `apps/web/app/(dashboard)/onboarding-card.tsx` — Onboarding wizard
+- `apps/web/app/api/orgs/[slug]/templates/route.ts` — Template list + install
+- `apps/web/app/api/orgs/[slug]/leads/export/route.ts` — CSV export
+- `apps/web/app/api/orgs/[slug]/leads/import/route.ts` — CSV import
+- `apps/web/app/api/orgs/[slug]/ai/compose-email/route.ts` — AI email composition
+- `apps/web/app/api/orgs/[slug]/ai/classify-email/route.ts` — AI email classification
+- `apps/web/app/api/orgs/[slug]/ai/pipeline-insights/route.ts` — AI pipeline analytics
+- `apps/web/app/api/orgs/[slug]/workflows/[id]/webhook/route.ts` — Webhook trigger
+- `apps/web/app/api/orgs/[slug]/api-keys/route.ts` + `[keyId]/route.ts` — API key CRUD
+- `apps/web/components/providers/theme-provider.tsx` + `theme-toggle.tsx` — Dark mode
+- `apps/web/components/leads/import-button.tsx` — CSV import UI
+- `apps/web/components/nav/mobile-nav.tsx` — Mobile hamburger menu
+- `apps/worker/src/ai.ts` — DeepSeek client for worker
+
+---
+
+---
+
+## Phase 11 — Security Hardening v2 ✅
+
+> Completed: 2026-05-18
+
+### 4 High-Severity Fixes
+
+| Fix | File | Description |
+|-----|------|-------------|
+| Timing-safe webhook comparison | `webhook/route.ts` | Replaced `!==` with `crypto.timingSafeEqual()` to prevent timing side-channel attacks |
+| Zod input validation | **New: `lib/validation.ts`** | 16 Zod schemas applied to login, register, leads, orgs, api-keys, workflows, members, AI endpoints |
+| JWT revocation | **New: `lib/token-blacklist.ts`** | Redis-based JWT blacklist with jti tracking. Tokens revoked on logout. Middleware checks blacklist. |
+| Error sanitization | `import/route.ts`, `register/route.ts` | Prisma/DB errors logged server-side only; generic messages returned to client |
+
+### Additional Security Improvements
+
+- `crypto.randomUUID()` via Web Crypto API (Edge-compatible)
+- `extractJti()` function with base64url decode (Edge-compatible, uses `atob`)
+- Logout route revokes token before clearing cookie
+- Revoked tokens cleared with 7-day TTL matching JWT expiry
+- Email format validation, stage enum validation, string length limits
+- Password 8-128 char validation via Zod
+
+---
+
+## Phase 12 — Commercial UI/UX Upgrade ✅
+
+> Completed: 2026-05-18
+
+### Design System: Liquid Glass + Dimensional Layering
+
+| Category | Change |
+|----------|--------|
+| **Typography** | Inter → **Plus Jakarta Sans** (300/400/500/600/700 weights). Modern SaaS-optimized font. |
+| **Color palette** | Refined slate palette: bg `#f8fafc`, text `#0f172a`, accent `#2563eb`. 16 CSS custom properties for light + dark modes. |
+| **Glass effects** | `.glass` and `.glass-card` components with `backdrop-filter: blur(16px) saturate(180%)`, subtle borders, elevation shadows |
+| **Border radius** | Default `0.75rem` (rounded-xl equivalent). Larger radius options up to `2xl` (1.5rem). |
+| **Shadows** | Refined 6-level shadow scale from `xs` to `panel-xl`. Glass-specific shadows with colored overlays. |
+| **Animations** | New `scale-in`, `slide-down` keyframes. All transitions 200-300ms ease-out. `active:scale-[0.97]` on buttons. |
+
+### Pages Redesigned
+
+| Page | Key changes |
+|------|-------------|
+| **Landing** (`/`) | Glass navbar, refined hero, 6 feature cards with glass effect, 3-step how-it-works, premium CTA |
+| **Dashboard** (`/`) | Bento grid metric cards, glass-card run history, refined pipeline chart with colored bars, empty state |
+| **Login** (`/login`) | Glass card, spinner in loading button, refined inputs with focus rings, ambient gradient background |
+| **Register** (`/register`) | Same glass pattern, animated verification success state |
+| **Auth layout** | Ambient gradient blobs in background |
+| **Dashboard layout** | Glass sidebar with backdrop-blur, sticky glass header, more whitespace, refined logo |
+
+### Components Upgraded
+
+| Component | Change |
+|-----------|--------|
+| `Button` | Border-radius `xl` (0.75rem), `active:scale-[0.97]`, `font-semibold`, refined shadows, `duration-200` |
+| `Sidebar` | Glass sidebar, refined active states with accent indicator bar, Lucide icons, bottom theme toggle |
+| `UserMenu` | Settings shortcut, refined typography, Sign out in danger color |
+| `CSS globals` | Smooth scroll, refined focus rings, skeleton loader animation, CSS custom properties for all design tokens |
+
+---
+
 ## Known Issues / TODOs
 
-1. ~~**No tests** — zero test files across the entire project.~~ ✅ 114 tests (Phase 8)
-2. **Webhook/cron triggers** not implemented — only manual "Run Now" trigger available.
+1. ~~**No tests**~~ ✅ 114 tests (Phase 8)
+2. ~~**Webhook/cron triggers**~~ ✅ Webhook + schedule triggers via webhook endpoint (Phase 10)
 3. **BullMQ runtime error on Railway** — Worker deploys but throws `client[commandNameWithVersion] is not a function`.
 4. **`packages/core` and `packages/ui`** are empty shells for future work.
-5. ~~**Resend not configured** — send_email actions gracefully skip.~~ ✅ Verification emails sent via Resend.
+5. ~~**Resend not configured**~~ ✅ Verification emails sent via Resend.
 6. **RLS not enabled** — multi-tenant isolation relies entirely on app-layer query scoping.
+7. **API key middleware auth** — Keys are created/managed but middleware doesn't verify Bearer tokens yet (Prisma not available in Edge runtime).
+8. **Notification persistence** — Sonner toasts used for transient notifications; no persisted notification model.
+9. **Stripe billing** — Not implemented.

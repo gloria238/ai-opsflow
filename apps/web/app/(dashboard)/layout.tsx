@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { prisma } from "@opsflow/db";
 import { getSession } from "@/lib/session";
 import { Sidebar } from "@/components/nav/sidebar";
 import { SidebarHeader } from "@/components/nav/sidebar-header";
 import { UserMenu } from "@/components/nav/user-menu";
+import { MobileNav } from "@/components/nav/mobile-nav";
 import { Breadcrumb } from "@/components/nav/breadcrumb";
 import { redirect } from "next/navigation";
 
@@ -29,25 +31,36 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }));
 
   return (
-    <div className="min-h-screen flex bg-zinc-50">
-      <aside className="w-60 border-r border-zinc-200/60 bg-white flex flex-col">
-        <div className="px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2">
-            <div className="size-7 rounded-md bg-blue-600 flex items-center justify-center text-white text-xs font-bold">O</div>
-            <span className="font-semibold text-sm tracking-tight">OpsFlow</span>
-          </div>
+    <div className="min-h-screen flex bg-bg">
+      {/* Glass sidebar — hidden on mobile */}
+      <aside className="hidden lg:flex w-64 flex-col border-r border-sidebar-border bg-sidebar-bg backdrop-blur-xl">
+        <div className="px-5 py-5 border-b border-sidebar-border">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="size-8 rounded-xl bg-accent flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-accent/25 group-hover:shadow-md group-hover:shadow-accent/30 transition-shadow duration-300">
+              O
+            </div>
+            <span className="font-semibold text-base tracking-tight text-text">OpsFlow</span>
+          </Link>
           <SidebarHeader currentOrg={org} orgs={allOrgs} />
         </div>
-        <div className="p-3 flex-1">
+        <div className="flex-1 overflow-y-auto py-3">
           <Sidebar />
         </div>
       </aside>
-      <div className="flex-1 flex flex-col">
-        <header className="h-12 border-b border-zinc-200/60 bg-white flex items-center justify-between px-8">
-          <Breadcrumb />
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header with glass effect */}
+        <header className="sticky top-0 z-30 h-14 border-b border-border bg-glass-bg backdrop-blur-xl flex items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center gap-3">
+            <MobileNav />
+            <Breadcrumb />
+          </div>
           <UserMenu user={{ name: user.name || "User", email: user.email }} org={{ name: org.name, slug: org.slug }} />
         </header>
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 animate-fade-in">
+          {children}
+        </main>
       </div>
     </div>
   );

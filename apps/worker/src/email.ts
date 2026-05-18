@@ -47,7 +47,15 @@ export async function sendEmail(
   const body = resolveTemplate(config.body, context);
   const from = config.from ? resolveTemplate(config.from, context) : DEFAULT_FROM;
 
-  const { data, error } = await r.emails.send({ from, to: [to], subject, text: body });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await r.emails.send({
+    from,
+    to: [to],
+    subject,
+    text: body,
+    trackOpens: true,
+    trackClicks: true,
+  } as any);
 
   if (error) throw new Error(`Email send failed: ${error.message}`);
 

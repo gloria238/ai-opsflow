@@ -3,16 +3,18 @@ import { prisma } from "@opsflow/db";
 import { verifyPassword } from "@/lib/password";
 import { signToken } from "@/lib/auth";
 import { getRequestContext, logInfo, logWarn, logError } from "@/lib/logger";
+import { loginSchema } from "@/lib/validation";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
   const ctx = getRequestContext(request);
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
+    const body = await request.json();
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
+    const { email, password } = parsed.data;
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {

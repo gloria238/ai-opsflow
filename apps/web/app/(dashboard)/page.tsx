@@ -3,8 +3,9 @@ import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { WorkerStatusCard } from "./worker-status-card";
+import { OnboardingCard } from "./onboarding-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, LayoutGrid, Workflow, Users, Plus, Zap, CheckCircle, XCircle, Clock, BarChart3 } from "lucide-react";
+import { ArrowRight, Workflow, Users, LayoutGrid, Plus, Zap, CheckCircle, XCircle, Clock, BarChart3, TrendingUp } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -26,14 +27,12 @@ export default async function DashboardPage() {
       take: 5,
       include: { workflowVersion: { select: { workflow: { select: { name: true } } } } },
     }),
-    // Run totals by status
     Promise.all([
       prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: "completed" } }),
       prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: { in: ["failed", "dead_letter"] } } }),
       prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: "queued" } }),
       prisma.workflowRun.count({ where: { workflowVersion: { workflow: { organizationId: org.id } }, status: "running" } }),
     ]),
-    // Lead stage breakdown
     prisma.lead.groupBy({ by: ["stage"], where: { organizationId: org.id }, _count: true }),
   ]);
 
@@ -44,215 +43,200 @@ export default async function DashboardPage() {
     leadsByStage.map((s) => [s.stage ?? "new", s._count]),
   );
   const stages = [
-    { key: "new", label: "New", color: "bg-zinc-400" },
-    { key: "qualified", label: "Qualified", color: "bg-blue-500" },
-    { key: "proposal", label: "Proposal", color: "bg-amber-500" },
-    { key: "negotiation", label: "Negotiation", color: "bg-orange-500" },
-    { key: "closed-won", label: "Won", color: "bg-emerald-500" },
-    { key: "closed-lost", label: "Lost", color: "bg-red-400" },
+    { key: "new", label: "New", color: "var(--text-muted)" },
+    { key: "qualified", label: "Qualified", color: "#3b82f6" },
+    { key: "proposal", label: "Proposal", color: "#f59e0b" },
+    { key: "negotiation", label: "Negotiation", color: "#f97316" },
+    { key: "closed-won", label: "Won", color: "#10b981" },
+    { key: "closed-lost", label: "Lost", color: "#ef4444" },
   ];
   const maxStageCount = Math.max(1, ...stages.map((s) => stageMap[s.key] ?? 0));
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto space-y-8 animate-slide-up">
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900">{org.name}</h1>
-          <p className="text-sm text-zinc-500 mt-1">Monitor workflow execution and operational health.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-text">{org.name}</h1>
+          <p className="text-sm text-text-secondary mt-1">Monitor workflows, leads, and operational health.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/workflows" className="inline-flex items-center gap-2 rounded-xl bg-accent text-white text-sm font-medium px-4 py-2.5 hover:bg-accent-hover transition-colors duration-200 shadow-sm shadow-accent/25">
+            <Plus className="size-4" /> New Workflow
+          </Link>
+          <Link href="/leads" className="inline-flex items-center gap-2 rounded-xl border border-border bg-bg-card text-text-secondary text-sm font-medium px-4 py-2.5 hover:bg-bg-subtle transition-colors duration-200">
+            <Users className="size-4" /> View Leads
+          </Link>
+          <Link href="/runs" className="inline-flex items-center gap-2 rounded-xl border border-border bg-bg-card text-text-secondary text-sm font-medium px-4 py-2.5 hover:bg-bg-subtle transition-colors duration-200">
+            <Zap className="size-4" /> Runs
+          </Link>
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/workflows"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white text-sm font-medium px-4 py-2 hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors"
-        >
-          <Plus className="size-4" />
-          New Workflow
-        </Link>
-        <Link
-          href="/leads"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white text-zinc-700 text-sm font-medium px-4 py-2 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 transition-colors"
-        >
-          <Users className="size-4" />
-          View Leads
-        </Link>
-        <Link
-          href="/runs"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white text-zinc-700 text-sm font-medium px-4 py-2 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 transition-colors"
-        >
-          <Zap className="size-4" />
-          View Runs
-        </Link>
-      </div>
+      <OnboardingCard show={workflowCount === 0 && leadCount === 0} orgSlug={session.orgSlug} />
 
-      {/* Stats cards */}
+      {/* Bento Grid — 3 main metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/workflows" className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                <Workflow className="size-5" />
+        <Link href="/workflows" className="group">
+          <div className="glass-card p-5 h-full cursor-pointer">
+            <div className="flex items-start justify-between">
+              <div className="size-11 rounded-2xl bg-accent-soft flex items-center justify-center">
+                <Workflow className="size-5 text-accent" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-zinc-500">Workflows</p>
-                <p className="text-2xl font-semibold text-zinc-900 mt-0.5">{workflowCount}</p>
-              </div>
-              <ArrowRight className="size-4 text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0" />
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/leads" className="block group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xl">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                <Users className="size-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-zinc-500">Leads</p>
-                <p className="text-2xl font-semibold text-zinc-900 mt-0.5">{leadCount}</p>
-              </div>
-              <ArrowRight className="size-4 text-zinc-300 group-hover:text-zinc-500 transition-colors shrink-0" />
-            </CardContent>
-          </Card>
-        </Link>
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="size-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-600 shrink-0">
-              <LayoutGrid className="size-5" />
+              <ArrowRight className="size-4 text-text-muted opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-1 group-hover:translate-x-0" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-zinc-500">Members</p>
-              <p className="text-2xl font-semibold text-zinc-900 mt-0.5">{memberCount}</p>
+            <p className="mt-4 text-3xl font-bold tracking-tight text-text">{workflowCount}</p>
+            <p className="text-sm text-text-secondary mt-1">Workflows</p>
+          </div>
+        </Link>
+
+        <Link href="/leads" className="group">
+          <div className="glass-card p-5 h-full cursor-pointer">
+            <div className="flex items-start justify-between">
+              <div className="size-11 rounded-2xl bg-success-soft flex items-center justify-center">
+                <Users className="size-5 text-success" />
+              </div>
+              <ArrowRight className="size-4 text-text-muted opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-1 group-hover:translate-x-0" />
             </div>
-          </CardContent>
-        </Card>
+            <p className="mt-4 text-3xl font-bold tracking-tight text-text">{leadCount}</p>
+            <p className="text-sm text-text-secondary mt-1">Leads</p>
+          </div>
+        </Link>
+
+        <div className="glass-card p-5 h-full">
+          <div className="flex items-start justify-between">
+            <div className="size-11 rounded-2xl bg-bg-subtle flex items-center justify-center">
+              <LayoutGrid className="size-5 text-text-secondary" />
+            </div>
+          </div>
+          <p className="mt-4 text-3xl font-bold tracking-tight text-text">{memberCount}</p>
+          <p className="text-sm text-text-secondary mt-1">Members</p>
+        </div>
       </div>
 
-      {/* Run health metrics */}
+      {/* Run health — 4 mini cards */}
       {totalRuns > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="hover:shadow-sm transition-shadow">
-            <CardContent className="flex items-center gap-3 p-4">
-              <CheckCircle className="size-5 text-emerald-500 shrink-0" />
-              <div>
-                <p className="text-lg font-semibold text-zinc-900">{completedRuns}</p>
-                <p className="text-xs text-zinc-500">Completed</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { icon: CheckCircle, label: "Completed", count: completedRuns, color: "text-success", bg: "bg-success-soft" },
+            { icon: XCircle, label: "Failed", count: failedRuns, color: "text-danger", bg: "bg-danger-soft" },
+            { icon: Clock, label: "Queued", count: queuedRuns, color: "text-warning", bg: "bg-warning-soft" },
+            { icon: Zap, label: "Running", count: runningRuns, color: "text-accent", bg: "bg-accent-soft" },
+          ].map(({ icon: Icon, label, count, color, bg }) => (
+            <div key={label} className="glass-card p-4 flex items-center gap-3">
+              <div className={`size-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                <Icon className={`size-4 ${color}`} />
               </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-sm transition-shadow">
-            <CardContent className="flex items-center gap-3 p-4">
-              <XCircle className="size-5 text-red-500 shrink-0" />
               <div>
-                <p className="text-lg font-semibold text-zinc-900">{failedRuns}</p>
-                <p className="text-xs text-zinc-500">Failed</p>
+                <p className="text-lg font-bold text-text">{count}</p>
+                <p className="text-xs text-text-muted">{label}</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-sm transition-shadow">
-            <CardContent className="flex items-center gap-3 p-4">
-              <Clock className="size-5 text-amber-500 shrink-0" />
-              <div>
-                <p className="text-lg font-semibold text-zinc-900">{queuedRuns}</p>
-                <p className="text-xs text-zinc-500">Queued</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-sm transition-shadow">
-            <CardContent className="flex items-center gap-3 p-4">
-              <Zap className="size-5 text-blue-500 shrink-0" />
-              <div>
-                <p className="text-lg font-semibold text-zinc-900">{runningRuns}</p>
-                <p className="text-xs text-zinc-500">Running</p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Two-column: Recent runs + Worker health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <h3 className="text-sm font-semibold text-zinc-800 mb-3">Recent Runs</h3>
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text">Recent Runs</h3>
+            <Link href="/runs" className="text-xs text-accent hover:text-accent-hover transition-colors">View all</Link>
+          </div>
           {recentRuns.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Zap className="size-8 text-zinc-300 mx-auto mb-2" />
-                <p className="text-sm text-zinc-500 mb-3">No workflow runs yet</p>
-                <Link
-                  href="/workflows"
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  Create and run your first workflow →
-                </Link>
-              </CardContent>
-            </Card>
+            <div className="glass-card p-8 text-center">
+              <Zap className="size-8 text-text-muted mx-auto mb-3 opacity-40" />
+              <p className="text-sm text-text-secondary mb-3">No workflow runs yet</p>
+              <Link href="/workflows" className="text-sm font-medium text-accent hover:text-accent-hover transition-colors">
+                Create and run your first workflow →
+              </Link>
+            </div>
           ) : (
             <div className="space-y-2">
               {recentRuns.map((run) => (
-                <Link key={run.id} href={`/runs`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl">
-                  <Card className="hover:shadow-sm transition-shadow cursor-pointer">
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-zinc-800 truncate">
-                          {run.workflowVersion?.workflow?.name || "Unknown workflow"}
-                        </p>
-                        <p className="text-xs text-zinc-400 mt-0.5">
-                          {new Date(run.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
-                        run.status === "completed" ? "bg-emerald-50 text-emerald-700" :
-                        run.status === "failed" || run.status === "dead_letter" ? "bg-red-50 text-red-700" :
-                        run.status === "running" ? "bg-blue-50 text-blue-700" :
-                        "bg-zinc-100 text-zinc-600"
-                      }`}>
-                        {run.status}
-                      </span>
-                    </CardContent>
-                  </Card>
+                <Link key={run.id} href="/runs" className="block">
+                  <div className="glass-card p-4 flex items-center justify-between cursor-pointer">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text truncate">
+                        {run.workflowVersion?.workflow?.name || "Unknown workflow"}
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {new Date(run.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ml-3 ${
+                      run.status === "completed" ? "bg-success-soft text-success" :
+                      run.status === "failed" || run.status === "dead_letter" ? "bg-danger-soft text-danger" :
+                      run.status === "running" ? "bg-accent-soft text-accent" :
+                      "bg-bg-subtle text-text-secondary"
+                    }`}>
+                      {run.status}
+                    </span>
+                  </div>
                 </Link>
               ))}
             </div>
           )}
         </div>
-        <div>
-          <h3 className="text-sm font-semibold text-zinc-800 mb-3">Worker Health</h3>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-text">Worker Health</h3>
           <WorkerStatusCard orgSlug={org.slug} />
         </div>
       </div>
 
-      {/* Lead pipeline */}
+      {/* Lead pipeline chart */}
       {leadCount > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <BarChart3 className="size-4 text-zinc-400" />
-            <h3 className="text-sm font-semibold text-zinc-800">Lead Pipeline</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="size-4 text-text-muted" />
+            <h3 className="text-sm font-semibold text-text">Lead Pipeline</h3>
           </div>
-          <Card>
-            <CardContent className="p-5">
-              <div className="space-y-2">
-                {stages.map((stage) => {
-                  const count = stageMap[stage.key] ?? 0;
-                  const width = (count / maxStageCount) * 100;
-                  return (
-                    <div key={stage.key} className="flex items-center gap-3">
-                      <span className="text-xs text-zinc-600 w-20 shrink-0">{stage.label}</span>
-                      <div className="flex-1 h-5 bg-zinc-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${stage.color} rounded-full transition-all duration-500`}
-                          style={{ width: `${Math.max(width, count > 0 ? 8 : 0)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-zinc-500 w-6 text-right">{count}</span>
+          <div className="glass-card p-6">
+            <div className="space-y-3">
+              {stages.map((stage) => {
+                const count = stageMap[stage.key] ?? 0;
+                const width = (count / maxStageCount) * 100;
+                return (
+                  <div key={stage.key} className="flex items-center gap-3">
+                    <span className="text-sm text-text-secondary w-24 shrink-0">{stage.label}</span>
+                    <div className="flex-1 h-7 bg-bg-subtle rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700 ease-out"
+                        style={{
+                          width: `${Math.max(width, count > 0 ? 6 : 0)}%`,
+                          backgroundColor: stage.color,
+                          opacity: count > 0 ? 1 : 0.2,
+                        }}
+                      />
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    <span className="text-sm font-semibold text-text w-8 text-right">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {leadCount === 0 && workflowCount === 0 && (
+        <div className="glass-card p-12 text-center">
+          <div className="size-16 rounded-2xl bg-accent-soft flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="size-8 text-accent opacity-60" />
+          </div>
+          <h3 className="text-lg font-semibold text-text mb-2">Ready to get started?</h3>
+          <p className="text-sm text-text-secondary max-w-md mx-auto mb-6">
+            Create your first lead or install a workflow template to see pipeline analytics and run metrics here.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Link href="/leads" className="rounded-xl bg-accent text-white text-sm font-medium px-5 py-2.5 hover:bg-accent-hover transition-colors duration-200">
+              Add Lead
+            </Link>
+            <Link href="/templates" className="rounded-xl border border-border text-text-secondary text-sm font-medium px-5 py-2.5 hover:bg-bg-subtle transition-colors duration-200">
+              Browse Templates
+            </Link>
+          </div>
         </div>
       )}
     </div>

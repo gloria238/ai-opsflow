@@ -8,8 +8,10 @@ type ActionWorkflowNode = Node<WorkflowNodeData, "action">;
 
 const actionLabels: Record<string, string> = {
   send_email: "Send email",
+  score_lead: "Score lead (AI)",
   update_lead: "Update lead",
   create_lead: "Create lead",
+  compose_email: "Compose email (AI)",
   slack_notify: "Slack notification",
   http_request: "HTTP request",
 };

@@ -66,6 +66,29 @@ export async function callDeepSeek(
   return content;
 }
 
+function extractBalancedJSON(text: string): string | null {
+  const openers = ["{", "["];
+  const closers: Record<string, string> = { "{": "}", "[": "]" };
+  for (const opener of openers) {
+    const start = text.indexOf(opener);
+    if (start === -1) continue;
+    const closer = closers[opener];
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === "\\" && inString) { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === opener) { depth++; }
+      else if (ch === closer) { depth--; if (depth === 0) return text.slice(start, i + 1); }
+    }
+  }
+  return null;
+}
+
 export async function callDeepSeekJSON<T>(
   prompt: string,
   system?: string,
@@ -85,10 +108,10 @@ export async function callDeepSeekJSON<T>(
   try {
     return JSON.parse(cleaned) as T;
   } catch {
-    // Last resort: try to find JSON object in the text
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try { return JSON.parse(jsonMatch[0]) as T; } catch { /* fall through */ }
+    // Fallback: extract balanced JSON object or array using brace counting
+    const extracted = extractBalancedJSON(cleaned);
+    if (extracted) {
+      try { return JSON.parse(extracted) as T; } catch { /* fall through */ }
     }
     throw new AIClientError(
       `AI returned invalid JSON: ${cleaned.slice(0, 300)}`,

@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
   const run = await prisma.workflowRun.create({
     data: {
       versionId: latestVersion.id,
-      input: body.input || {},
+      input: { _orgId: membership.organizationId, ...((body.input as object) || {}) },
       status: "queued",
     },
   });

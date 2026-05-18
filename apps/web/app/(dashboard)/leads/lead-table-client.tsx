@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ImportButton } from "@/components/leads/import-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const STAGES = ["new", "qualified", "proposal", "negotiation", "closed-won", "closed-lost"];
@@ -151,12 +152,21 @@ export function LeadTableClient({ initialLeads, initialTotal, orgSlug, canManage
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">Leads</h2>
-        {canManage && (
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger>
-              <Button size="sm">New Lead</Button>
-            </DialogTrigger>
+        <h2 className="text-2xl font-bold dark:text-white">Leads</h2>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/orgs/${orgSlug}/leads/export`}
+            className="rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Export CSV
+          </a>
+          {canManage && (
+            <>
+              <ImportButton orgSlug={orgSlug} onImported={() => queryClient.invalidateQueries({ queryKey })} />
+              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                <DialogTrigger>
+                  <Button size="sm">New Lead</Button>
+                </DialogTrigger>
             <DialogContent title="New Lead">
               <div className="space-y-4">
                 <Input label="Name *" value={newName} onChange={(e) => setNewName(e.target.value)} disabled={createMutation.isPending} />
@@ -179,7 +189,9 @@ export function LeadTableClient({ initialLeads, initialTotal, orgSlug, canManage
               </div>
             </DialogContent>
           </Dialog>
+          </>
         )}
+      </div>
       </div>
 
       {/* Filters */}
