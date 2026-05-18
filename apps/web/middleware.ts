@@ -32,25 +32,22 @@ export async function middleware(request: NextRequest) {
       });
     }
 
-    // Carry over rate limit headers on allowed responses too
     if (pathname.startsWith("/api/auth/")) {
       return response;
     }
   }
 
-  // Redirect authenticated users from landing page to dashboard
+  // Rewrite authenticated users from landing page to dashboard
   if (pathname === "/") {
     const token = request.cookies.get("session")?.value;
     if (token) {
       const payload = await verifyToken(token);
       if (payload) {
-        if (payload.jti) {
-          const revoked = await isTokenRevoked(payload.jti);
-          if (!revoked) {
-            return NextResponse.redirect(new URL("/workflows", request.url));
-          }
-        } else {
-          return NextResponse.redirect(new URL("/workflows", request.url));
+        const revoked = payload.jti ? await isTokenRevoked(payload.jti) : false;
+        if (!revoked) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/home";
+          return NextResponse.rewrite(url);
         }
       }
     }
@@ -81,7 +78,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Check if token has been revoked (logout, password change, etc.)
   if (payload.jti) {
     const revoked = await isTokenRevoked(payload.jti);
     if (revoked) {

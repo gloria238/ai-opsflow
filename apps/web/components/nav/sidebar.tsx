@@ -6,7 +6,7 @@ import { LayoutDashboard, Users, Workflow, PlayCircle, Settings, History, Layout
 import { ThemeToggle } from "@/components/providers/theme-toggle";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/home", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Leads", icon: Users },
   { href: "/workflows", label: "Workflows", icon: Workflow },
   { href: "/templates", label: "Templates", icon: LayoutTemplate },

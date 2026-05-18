@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 interface DropdownContextValue {
   open: boolean;
@@ -41,7 +42,10 @@ export function DropdownMenuContent({ children, align = "start" }: { children: R
   return (
     <div
       ref={ref}
-      className={`absolute z-50 min-w-[8rem] rounded-lg border bg-white shadow-md py-1 mt-1 ${align === "end" ? "right-0" : "left-0"}`}
+      className={cn(
+        "absolute z-50 min-w-[8rem] rounded-xl border border-border bg-bg-card shadow-lg py-1 mt-1",
+        align === "end" ? "right-0" : "left-0",
+      )}
     >
       {children}
     </div>
@@ -52,7 +56,7 @@ export function DropdownMenuItem({ children, onClick }: { children: React.ReactN
   const { setOpen } = useContext(DropdownContext);
   return (
     <div
-      className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+      className="px-3 py-2 text-sm text-text hover:bg-bg-subtle cursor-pointer transition-colors duration-100"
       onClick={() => { onClick?.(); setOpen(false); }}
     >
       {children}
@@ -61,5 +65,5 @@ export function DropdownMenuItem({ children, onClick }: { children: React.ReactN
 }
 
 export function DropdownMenuSeparator() {
-  return <div className="h-px bg-gray-200 my-1" />;
+  return <div className="h-px bg-border my-1" />;
 }

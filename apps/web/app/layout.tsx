@@ -9,12 +9,12 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "OpsFlow AI — AI-Powered Workflow CRM",
-  description: "Automate sales ops with AI workflows. Score leads, compose emails, and run multi-step automations.",
+  title: "OpsFlow — AI-Native Operations Platform",
+  description: "Lead scoring, workflow automation, AI-assisted outreach, and operational monitoring for modern sales teams.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

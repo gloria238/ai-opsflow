@@ -50,17 +50,17 @@ export function DialogContent({ children, title }: { children: React.ReactNode; 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === overlayRef.current) setOpen(false); }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-visible">
+      <div className="bg-bg-card rounded-xl shadow-lg border border-border w-full max-w-md mx-4 overflow-visible">
         {title && (
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <h3 className="font-semibold text-lg">{title}</h3>
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+            <h3 className="font-semibold text-text">{title}</h3>
+            <button onClick={() => setOpen(false)} className="text-text-muted hover:text-text text-lg leading-none transition-colors">&times;</button>
           </div>
         )}
-        <div className="p-4">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
     </div>
   );
