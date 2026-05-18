@@ -42,7 +42,7 @@ export default async function DashboardHomePage() {
     leadsByStage.map((s) => [s.stage ?? "new", s._count]),
   );
   const stages = [
-    { key: "new", label: "New", color: "var(--text-muted)" },
+    { key: "new", label: "New", color: "#94a3b8" },
     { key: "qualified", label: "Qualified", color: "#3b82f6" },
     { key: "proposal", label: "Proposal", color: "#f59e0b" },
     { key: "negotiation", label: "Negotiation", color: "#f97316" },

@@ -11,6 +11,46 @@ module.exports = {
         sans: ["var(--font-jakarta)", "Plus Jakarta Sans", "system-ui", "sans-serif"],
       },
       colors: {
+        accent: {
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
+          soft: "rgb(var(--accent-soft) / <alpha-value>)",
+        },
+        bg: {
+          DEFAULT: "rgb(var(--bg) / <alpha-value>)",
+          card: "rgb(var(--bg-card) / <alpha-value>)",
+          subtle: "rgb(var(--bg-subtle) / <alpha-value>)",
+          muted: "rgb(var(--bg-muted) / <alpha-value>)",
+        },
+        text: {
+          DEFAULT: "rgb(var(--text) / <alpha-value>)",
+          secondary: "rgb(var(--text-secondary) / <alpha-value>)",
+          muted: "rgb(var(--text-muted) / <alpha-value>)",
+        },
+        success: {
+          DEFAULT: "rgb(var(--success) / <alpha-value>)",
+          soft: "rgb(var(--success-soft) / <alpha-value>)",
+        },
+        warning: {
+          DEFAULT: "rgb(var(--warning) / <alpha-value>)",
+          soft: "rgb(var(--warning-soft) / <alpha-value>)",
+        },
+        danger: {
+          DEFAULT: "rgb(var(--danger) / <alpha-value>)",
+          soft: "rgb(var(--danger-soft) / <alpha-value>)",
+        },
+        border: {
+          DEFAULT: "rgb(var(--border) / <alpha-value>)",
+          light: "rgb(var(--border-light) / <alpha-value>)",
+        },
+        glass: {
+          bg: "var(--glass-bg)",
+          border: "var(--glass-border)",
+        },
+        sidebar: {
+          bg: "var(--sidebar-bg)",
+          border: "var(--sidebar-border)",
+        },
         surface: {
           DEFAULT: "#fafafa",
           alt: "#f4f4f5",
