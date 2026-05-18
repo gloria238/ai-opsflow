@@ -7,24 +7,24 @@ const features = [
     desc: "Build multi-step workflows with delays, branching, AI scoring, and async execution. Trigger on schedules, webhooks, or lead events.",
   },
   {
+    icon: "🔍",
+    title: "Operational Monitoring",
+    desc: "Track every workflow run, retry, and failure in real time. Monitor worker health and queue depth from a live operational dashboard.",
+  },
+  {
     icon: "📊",
     title: "Lead Operations",
     desc: "Automatically score leads, classify replies, generate follow-ups, and track pipeline health across 6 stages in real time.",
   },
   {
-    icon: "📧",
-    title: "Smart Email Sequences",
-    desc: "AI-composed welcome, follow-up, and re-engagement emails with open and click tracking. Auto-classify responses.",
-  },
-  {
-    icon: "🔍",
-    title: "Operational Monitoring",
-    desc: "Track every workflow run, retry, and failure in real time. Monitor worker health and queue depth from a live dashboard.",
-  },
-  {
     icon: "🏗️",
     title: "Multi-Tenant Workspaces",
-    desc: "Role-based access with 4 permission levels. Isolated workspaces, organization switching, and team collaboration built in.",
+    desc: "Role-based access with 4 permission levels. Isolated workspaces, organization switching, and secure team collaboration built in.",
+  },
+  {
+    icon: "📧",
+    title: "Smart Email Sequences",
+    desc: "AI-composed welcome, follow-up, and re-engagement emails with open and click tracking. Auto-classify responses and trigger workflows.",
   },
   {
     icon: "🔌",
@@ -53,17 +53,21 @@ const useCases = [
 ];
 
 const audiences = [
-  "AI agencies", "SaaS startups", "Outbound sales teams",
-  "RevOps teams", "Internal automation systems",
+  { label: "AI Agencies", icon: "🤖" },
+  { label: "SaaS Startups", icon: "🚀" },
+  { label: "Outbound Teams", icon: "📨" },
+  { label: "RevOps", icon: "📈" },
+  { label: "Internal Tools", icon: "⚙️" },
+  { label: "Automation Systems", icon: "🔄" },
 ];
 
 const credibility = [
-  { label: "Async Queue Orchestration", detail: "BullMQ" },
-  { label: "Real-time Execution Monitoring", detail: "SSE streaming" },
-  { label: "Multi-tenant RBAC", detail: "4 roles, 10 permissions" },
-  { label: "Distributed Workers", detail: "Stateless, horizontally scalable" },
-  { label: "AI Pipeline Integration", detail: "DeepSeek, prompt caching" },
-  { label: "Production Database", detail: "PostgreSQL + Prisma ORM" },
+  { label: "Async Queue Orchestration", desc: "Background execution with retries, delayed jobs, and failure recovery." },
+  { label: "Real-time Monitoring", desc: "Live execution visibility with streaming updates and operational dashboards." },
+  { label: "Multi-tenant RBAC", desc: "Secure organization isolation with scoped permissions and workspace management." },
+  { label: "Distributed Workers", desc: "Horizontally scalable background processing architecture." },
+  { label: "AI Pipeline Integration", desc: "AI-assisted lead scoring, workflow generation, and operational analysis." },
+  { label: "PostgreSQL + Prisma ORM", desc: "Production-grade database with type-safe queries and schema migrations." },
 ];
 
 export default function LandingPage() {
@@ -90,8 +94,8 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="max-w-3xl mx-auto px-6 pt-24 pb-16 text-center">
+      {/* Hero — more whitespace */}
+      <section className="max-w-2xl mx-auto px-6 pt-32 pb-20 text-center">
         <div className="inline-flex items-center gap-2 rounded-full bg-accent-soft border border-accent/10 px-4 py-1.5 text-sm font-medium text-accent mb-8 animate-fade-in">
           <span className="relative flex size-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-50" />
@@ -99,14 +103,14 @@ export default function LandingPage() {
           </span>
           AI-native operations platform
         </div>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight animate-slide-up text-center">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight animate-slide-up">
           Run your sales operations{" "}
           <span className="bg-gradient-to-r from-accent to-accent bg-clip-text text-transparent [background-clip:text] [-webkit-background-clip:text]">
             on autopilot
           </span>
         </h1>
-        <p className="mt-6 text-lg text-text-secondary max-w-xl mx-auto leading-relaxed animate-slide-up text-center" style={{ animationDelay: "50ms" }}>
-          Lead scoring, workflow automation, AI-assisted outreach, and operational monitoring — built for teams that need to move faster with fewer people.
+        <p className="mt-6 text-lg text-text-secondary max-w-lg mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: "50ms" }}>
+          Lead scoring, workflow orchestration, async automation, and AI-assisted outreach — unified into one operational workspace.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: "100ms" }}>
           <Link href="/register"
@@ -114,58 +118,61 @@ export default function LandingPage() {
             Start building workflows
           </Link>
           <Link href="/login"
-            className="rounded-xl border border-border bg-bg-card text-text-secondary font-semibold px-6 py-3 hover:bg-bg-subtle transition-all duration-200">
+            className="rounded-xl border border-border bg-bg-card text-text font-semibold px-6 py-3 hover:bg-bg-subtle transition-all duration-200">
             Sign in
           </Link>
         </div>
-        <p className="mt-4 text-xs text-text-muted animate-fade-in" style={{ animationDelay: "150ms" }}>
+        <p className="mt-5 text-xs text-text-muted animate-fade-in" style={{ animationDelay: "150ms" }}>
           Free to start. No credit card required.
         </p>
       </section>
 
-      {/* Trusted by / built for */}
-      <section className="max-w-3xl mx-auto px-6 pb-20">
-        <p className="text-xs font-medium text-text-muted uppercase tracking-widest text-center mb-5">Built for</p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
+      {/* Built for — visual pills */}
+      <section className="max-w-3xl mx-auto px-6 pb-24">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-6">Built for</p>
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {audiences.map((a) => (
-            <span key={a} className="rounded-full bg-bg-subtle border border-border px-4 py-1.5 text-sm text-text-secondary">
-              {a}
-            </span>
+            <div key={a.label} className="glass-card p-3 text-center group cursor-default">
+              <div className="text-lg mb-1 group-hover:scale-110 transition-transform duration-200">{a.icon}</div>
+              <p className="text-xs font-medium text-text-secondary">{a.label}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Features */}
-      <section className="max-w-5xl mx-auto px-6 pb-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3 tracking-tight">Everything your team needs to automate sales ops</h2>
-        <p className="text-text-secondary text-center mb-12 max-w-lg mx-auto text-sm">
-          From lead scoring to email automation — the busywork handled, so your team focuses on closing.
+      {/* Features — reordered, more spacing */}
+      <section className="max-w-5xl mx-auto px-6 pb-32">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-4">Capabilities</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 tracking-tight">Operational infrastructure for modern GTM teams</h2>
+        <p className="text-text-secondary text-center mb-16 max-w-lg mx-auto text-sm leading-relaxed">
+          AI-assisted systems purpose-built for high-velocity teams that need more than a CRM.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((f, i) => (
-            <div key={f.title} className="glass-card p-5 group"
+            <div key={f.title} className="glass-card p-6 group"
               style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="size-10 rounded-xl bg-accent-soft flex items-center justify-center text-lg mb-3 group-hover:scale-105 transition-transform duration-300">
+              <div className="size-10 rounded-xl bg-accent-soft flex items-center justify-center text-lg mb-4 group-hover:scale-105 transition-transform duration-300">
                 {f.icon}
               </div>
-              <h3 className="font-semibold text-text mb-1.5 text-sm">{f.title}</h3>
+              <h3 className="font-semibold text-text mb-2 text-sm">{f.title}</h3>
               <p className="text-xs text-text-secondary leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Example workflows */}
-      <section className="bg-bg-subtle/50 border-y border-border py-20">
+      {/* Example workflows — darker contrast block */}
+      <section className="bg-bg-subtle/70 border-y border-border py-24">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3 tracking-tight">How teams use OpsFlow</h2>
-          <p className="text-text-secondary text-center mb-12 max-w-lg mx-auto text-sm">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-4">Use Cases</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 tracking-tight">How teams use OpsFlow</h2>
+          <p className="text-text-secondary text-center mb-14 max-w-lg mx-auto text-sm leading-relaxed">
             Real workflows that replace hours of manual work with automated, AI-assisted processes.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {useCases.map((item) => (
-              <div key={item.title} className="glass-card p-5">
-                <h3 className="font-semibold text-text mb-1.5 text-sm">{item.title}</h3>
+              <div key={item.title} className="glass-card p-6">
+                <h3 className="font-semibold text-text mb-2 text-sm">{item.title}</h3>
                 <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
               </div>
             ))}
@@ -173,33 +180,37 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Credibility — Built like a production SaaS */}
+      {/* Credibility — tech + business value, not engineering resume */}
       <section className="max-w-4xl mx-auto px-6 py-24">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3 tracking-tight">Built like a production SaaS</h2>
-        <p className="text-text-secondary text-center mb-10 max-w-lg mx-auto text-sm">
-          Not a demo. Production-grade architecture designed for real workloads.
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-4">Architecture</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 tracking-tight">Built like a production SaaS</h2>
+        <p className="text-text-secondary text-center mb-4 max-w-lg mx-auto text-sm leading-relaxed">
+          Inspired by how modern operational SaaS platforms are architected. Not a demo — production-grade infrastructure designed for real workloads.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <p className="text-xs text-text-muted text-center mb-12">
+          Designed to reflect real production operational systems
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {credibility.map((item) => (
-            <div key={item.label} className="glass-card p-4 text-center">
-              <p className="text-xs text-text-muted mb-1">{item.label}</p>
-              <p className="text-sm font-semibold text-text">{item.detail}</p>
+            <div key={item.label} className="glass-card p-5 text-left">
+              <p className="text-sm font-semibold text-text mb-1.5">{item.label}</p>
+              <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="max-w-xl mx-auto px-6 pb-24 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">Ready to automate your operations?</h2>
-        <p className="text-text-secondary mb-8 text-sm max-w-md mx-auto">
+      {/* CTA — more breathing room */}
+      <section className="max-w-xl mx-auto px-6 pb-32 text-center">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Ready to automate your operations?</h2>
+        <p className="text-text-secondary mb-10 text-sm max-w-md mx-auto leading-relaxed">
           Start building AI-assisted workflows, scoring leads, and monitoring operations in minutes.
         </p>
         <Link href="/register"
           className="inline-flex rounded-xl bg-accent text-white font-semibold px-8 py-3.5 hover:bg-accent-hover transition-all duration-200 shadow-sm shadow-accent/25 hover:shadow-md hover:shadow-accent/30 active:scale-[0.98] text-base">
           Start building workflows
         </Link>
-        <p className="mt-4 text-xs text-text-muted">
+        <p className="mt-5 text-xs text-text-muted">
           Free to start. Upgrade when you need more runs.
         </p>
       </section>
