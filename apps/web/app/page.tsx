@@ -58,7 +58,7 @@ const audiences = [
   { label: "Outbound Teams", icon: "📨" },
   { label: "RevOps", icon: "📈" },
   { label: "Internal Tools", icon: "⚙️" },
-  { label: "Automation Systems", icon: "🔄" },
+  { label: "Automation", icon: "🔄" },
 ];
 
 const credibility = [
@@ -77,7 +77,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-glass-bg backdrop-blur-xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 h-14">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="size-8 rounded-xl bg-accent flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-accent/25 group-hover:shadow-md group-hover:shadow-accent/30 transition-shadow duration-300">
+            <div className="size-8 rounded-xl bg-accent flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-accent/20 group-hover:shadow-md group-hover:shadow-accent/30 transition-shadow duration-300">
               O
             </div>
             <span className="font-bold text-lg tracking-tight">OpsFlow</span>
@@ -87,15 +87,15 @@ export default function LandingPage() {
               Sign in
             </Link>
             <Link href="/register"
-              className="rounded-xl bg-accent text-white text-sm font-semibold px-4 py-2 hover:bg-accent-hover transition-all duration-200 shadow-sm shadow-accent/25 hover:shadow-md hover:shadow-accent/30">
+              className="rounded-xl bg-accent text-white text-sm font-semibold px-4 py-2 hover:bg-accent-hover transition-all duration-200 shadow-sm shadow-accent/20 hover:shadow-md hover:shadow-accent/30 active:scale-[0.98]">
               Start building
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero — more whitespace */}
-      <section className="max-w-2xl mx-auto px-6 pt-32 pb-20 text-center">
+      {/* Hero */}
+      <section className="max-w-3xl mx-auto px-6 pt-28 pb-16 text-center">
         <div className="inline-flex items-center gap-2 rounded-full bg-accent-soft border border-accent/10 px-4 py-1.5 text-sm font-medium text-accent mb-8 animate-fade-in">
           <span className="relative flex size-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-50" />
@@ -103,121 +103,123 @@ export default function LandingPage() {
           </span>
           AI-native operations platform
         </div>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight animate-slide-up">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] animate-slide-up">
           Run your sales operations{" "}
-          <span className="bg-gradient-to-r from-accent to-accent bg-clip-text text-transparent [background-clip:text] [-webkit-background-clip:text]">
+          <span className="bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent [background-clip:text] [-webkit-background-clip:text]">
             on autopilot
           </span>
         </h1>
-        <p className="mt-6 text-lg text-text-secondary max-w-lg mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: "50ms" }}>
+        <p className="mt-8 text-xl text-text-secondary max-w-xl mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: "50ms" }}>
           Lead scoring, workflow orchestration, async automation, and AI-assisted outreach — unified into one operational workspace.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: "100ms" }}>
           <Link href="/register"
-            className="rounded-xl bg-accent text-white font-semibold px-6 py-3 hover:bg-accent-hover transition-all duration-200 shadow-sm shadow-accent/25 hover:shadow-md hover:shadow-accent/30 active:scale-[0.98]">
+            className="rounded-xl bg-accent text-white font-semibold px-7 py-3.5 text-base hover:bg-accent-hover transition-all duration-200 shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/25 active:scale-[0.98]">
             Start building workflows
           </Link>
           <Link href="/login"
-            className="rounded-xl border border-border bg-bg-card text-text font-semibold px-6 py-3 hover:bg-bg-subtle transition-all duration-200">
+            className="rounded-xl border border-border bg-bg-card text-text font-semibold px-7 py-3.5 text-base hover:bg-bg-subtle transition-all duration-200">
             Sign in
           </Link>
         </div>
-        <p className="mt-5 text-xs text-text-muted animate-fade-in" style={{ animationDelay: "150ms" }}>
+        <p className="mt-6 text-sm text-text-muted animate-fade-in" style={{ animationDelay: "150ms" }}>
           Free to start. No credit card required.
         </p>
       </section>
 
-      {/* Built for — visual pills */}
-      <section className="max-w-3xl mx-auto px-6 pb-24">
-        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-6">Built for</p>
+      {/* Built for */}
+      <section className="max-w-3xl mx-auto px-6 pb-28">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-[0.2em] text-center mb-7">Built for</p>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {audiences.map((a) => (
-            <div key={a.label} className="glass-card p-3 text-center group cursor-default">
-              <div className="text-lg mb-1 group-hover:scale-110 transition-transform duration-200">{a.icon}</div>
-              <p className="text-xs font-medium text-text-secondary">{a.label}</p>
+            <div key={a.label} className="glass-card p-4 text-center group cursor-default hover:border-accent/30 transition-all duration-200">
+              <div className="text-xl mb-2 group-hover:scale-110 transition-transform duration-200">{a.icon}</div>
+              <p className="text-xs font-semibold text-text-secondary tracking-tight">{a.label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Features — reordered, more spacing */}
-      <section className="max-w-5xl mx-auto px-6 pb-32">
-        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-4">Capabilities</p>
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 tracking-tight">Operational infrastructure for modern GTM teams</h2>
-        <p className="text-text-secondary text-center mb-16 max-w-lg mx-auto text-sm leading-relaxed">
+      {/* Features */}
+      <section className="max-w-6xl mx-auto px-6 pb-32">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-[0.2em] text-center mb-5">Capabilities</p>
+        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-5 tracking-tight">
+          Operational infrastructure for modern GTM teams
+        </h2>
+        <p className="text-base text-text-secondary text-center mb-16 max-w-xl mx-auto leading-relaxed">
           AI-assisted systems purpose-built for high-velocity teams that need more than a CRM.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((f, i) => (
-            <div key={f.title} className="glass-card p-6 group"
-              style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="size-10 rounded-xl bg-accent-soft flex items-center justify-center text-lg mb-4 group-hover:scale-105 transition-transform duration-300">
+            <div key={f.title} className="glass-card p-7 group hover:border-accent/40 transition-all duration-300"
+              style={{ animationDelay: `${i * 60}ms` }}>
+              <div className="size-12 rounded-2xl bg-accent-soft flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform duration-300">
                 {f.icon}
               </div>
-              <h3 className="font-semibold text-text mb-2 text-sm">{f.title}</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">{f.desc}</p>
+              <h3 className="font-semibold text-text mb-2.5 text-base">{f.title}</h3>
+              <p className="text-sm text-text-secondary leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Example workflows — darker contrast block */}
-      <section className="bg-bg-subtle/70 border-y border-border py-24">
+      {/* Use Cases — contrast block */}
+      <section className="bg-bg-subtle/80 border-y border-border py-28">
         <div className="max-w-4xl mx-auto px-6">
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-4">Use Cases</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 tracking-tight">How teams use OpsFlow</h2>
-          <p className="text-text-secondary text-center mb-14 max-w-lg mx-auto text-sm leading-relaxed">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-[0.2em] text-center mb-5">Use Cases</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-5 tracking-tight">How teams use OpsFlow</h2>
+          <p className="text-base text-text-secondary text-center mb-16 max-w-xl mx-auto leading-relaxed">
             Real workflows that replace hours of manual work with automated, AI-assisted processes.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {useCases.map((item) => (
-              <div key={item.title} className="glass-card p-6">
-                <h3 className="font-semibold text-text mb-2 text-sm">{item.title}</h3>
-                <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
+              <div key={item.title} className="glass-card p-7 hover:border-accent/30 transition-all duration-300">
+                <h3 className="font-semibold text-text mb-2.5 text-base">{item.title}</h3>
+                <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Credibility — tech + business value, not engineering resume */}
-      <section className="max-w-4xl mx-auto px-6 py-24">
-        <p className="text-xs font-semibold text-text-muted uppercase tracking-widest text-center mb-4">Architecture</p>
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 tracking-tight">Built like a production SaaS</h2>
-        <p className="text-text-secondary text-center mb-4 max-w-lg mx-auto text-sm leading-relaxed">
+      {/* Credibility */}
+      <section className="max-w-5xl mx-auto px-6 py-28">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-[0.2em] text-center mb-5">Architecture</p>
+        <h2 className="text-3xl sm:text-4xl font-bold text-center mb-5 tracking-tight">Built like a production SaaS</h2>
+        <p className="text-base text-text-secondary text-center mb-3 max-w-xl mx-auto leading-relaxed">
           Inspired by how modern operational SaaS platforms are architected. Not a demo — production-grade infrastructure designed for real workloads.
         </p>
-        <p className="text-xs text-text-muted text-center mb-12">
+        <p className="text-sm text-text-muted text-center mb-14 italic">
           Designed to reflect real production operational systems
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {credibility.map((item) => (
-            <div key={item.label} className="glass-card p-5 text-left">
-              <p className="text-sm font-semibold text-text mb-1.5">{item.label}</p>
-              <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
+            <div key={item.label} className="glass-card p-6 text-left hover:border-accent/20 transition-all duration-200">
+              <p className="text-base font-semibold text-text mb-2">{item.label}</p>
+              <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA — more breathing room */}
-      <section className="max-w-xl mx-auto px-6 pb-32 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Ready to automate your operations?</h2>
-        <p className="text-text-secondary mb-10 text-sm max-w-md mx-auto leading-relaxed">
+      {/* CTA */}
+      <section className="max-w-2xl mx-auto px-6 pb-32 text-center">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-5">Ready to automate your operations?</h2>
+        <p className="text-base text-text-secondary mb-10 max-w-md mx-auto leading-relaxed">
           Start building AI-assisted workflows, scoring leads, and monitoring operations in minutes.
         </p>
         <Link href="/register"
-          className="inline-flex rounded-xl bg-accent text-white font-semibold px-8 py-3.5 hover:bg-accent-hover transition-all duration-200 shadow-sm shadow-accent/25 hover:shadow-md hover:shadow-accent/30 active:scale-[0.98] text-base">
+          className="inline-flex rounded-xl bg-accent text-white font-semibold px-8 py-4 hover:bg-accent-hover transition-all duration-200 shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/25 active:scale-[0.98] text-base">
           Start building workflows
         </Link>
-        <p className="mt-5 text-xs text-text-muted">
+        <p className="mt-6 text-sm text-text-muted">
           Free to start. Upgrade when you need more runs.
         </p>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-muted">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-text-muted">
           <span>&copy; 2026 OpsFlow. All rights reserved.</span>
           <div className="flex items-center gap-6">
             <Link href="/docs" className="hover:text-text-secondary transition-colors">API Docs</Link>

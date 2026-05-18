@@ -152,12 +152,13 @@ export function LeadTableClient({ initialLeads, initialTotal, orgSlug, canManage
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold dark:text-white">Leads</h2>
+        <h2 className="text-2xl font-bold text-text">Leads</h2>
         <div className="flex items-center gap-2">
           <a
             href={`/api/orgs/${orgSlug}/leads/export`}
-            className="rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-bg-card px-3.5 py-2 text-sm font-medium text-text-secondary hover:bg-bg-subtle hover:text-text transition-all duration-150"
           >
+            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             Export CSV
           </a>
           {canManage && (

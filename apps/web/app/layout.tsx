@@ -39,7 +39,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <QueryProvider>{children}</QueryProvider>
-          <Toaster position="bottom-right" richColors closeButton />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              className: "font-sans",
+              style: {
+                background: "rgb(var(--bg-card))",
+                color: "rgb(var(--text))",
+                border: "1px solid rgb(var(--border))",
+                borderRadius: "0.75rem",
+                boxShadow: "0 4px 24px -8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)",
+                fontSize: "0.875rem",
+                padding: "12px 16px",
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>
